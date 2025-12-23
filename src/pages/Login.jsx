@@ -218,23 +218,26 @@ const Login = () => {
             </Link>
           </p>
           
-          <Link 
-            to="/forgot-password"
+          <button
             onClick={(e) => {
+              e.preventDefault()
               console.log('Кнопка "Забыли пароль?" нажата')
-              // Разрешаем переход
+              navigate('/forgot-password')
             }}
             style={{ 
               color: '#667eea', 
+              background: 'transparent',
+              border: 'none',
               textDecoration: 'none',
               display: 'inline-block',
               marginTop: '10px',
               padding: '8px 16px',
               fontWeight: '500',
+              fontSize: '16px',
               transition: 'all 0.2s',
               cursor: 'pointer',
-              border: '1px solid transparent',
-              borderRadius: '6px'
+              borderRadius: '6px',
+              fontFamily: 'inherit'
             }}
             onMouseEnter={(e) => {
               e.target.style.textDecoration = 'underline'
@@ -246,7 +249,7 @@ const Login = () => {
             }}
           >
             Забыли пароль?
-          </Link>
+          </button>
           
           {/* Кнопка отладки */}
           <div style={{ marginTop: '20px' }}>
