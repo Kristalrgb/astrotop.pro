@@ -213,12 +213,26 @@ const Login = () => {
         <div style={{ textAlign: 'center', marginTop: '30px' }}>
           <p style={{ color: '#666', marginBottom: '15px' }}>
             Нет аккаунта?{' '}
-            <Link to="/register" style={{ color: '#667eea', textDecoration: 'none' }}>
+            <Link to="/register" style={{ color: '#667eea', textDecoration: 'none', fontWeight: '500' }}>
               Зарегистрироваться
             </Link>
           </p>
           
-          <Link to="/forgot-password" style={{ color: '#666', textDecoration: 'none' }}>
+          <Link 
+            to="/forgot-password" 
+            style={{ 
+              color: '#667eea', 
+              textDecoration: 'none',
+              display: 'inline-block',
+              marginTop: '10px',
+              padding: '8px 16px',
+              fontWeight: '500',
+              transition: 'color 0.2s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+          >
             Забыли пароль?
           </Link>
           

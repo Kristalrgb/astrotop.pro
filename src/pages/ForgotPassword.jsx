@@ -16,6 +16,25 @@ const ForgotPassword = () => {
     setSuccess(false)
   }
 
+  // Функция для генерации надежного пароля
+  const generatePassword = () => {
+    const length = 12
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let password = ''
+    // Гарантируем наличие хотя бы одной буквы и одной цифры
+    password += charset.charAt(Math.floor(Math.random() * 26)) // строчная буква
+    password += charset.charAt(26 + Math.floor(Math.random() * 26)) // заглавная буква
+    password += charset.charAt(52 + Math.floor(Math.random() * 10)) // цифра
+    
+    // Заполняем остальные символы
+    for (let i = password.length; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    }
+    
+    // Перемешиваем символы
+    return password.split('').sort(() => Math.random() - 0.5).join('')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -37,69 +56,68 @@ const ForgotPassword = () => {
     setSuccess(false)
 
     try {
-      // Проверяем, существует ли пользователь в localStorage
-      const savedUser = localStorage.getItem('user')
+      const normalizedEmail = email.toLowerCase().trim()
       let userFound = false
       let generatedPassword = ''
+      let userToUpdate = null
 
+      // Проверяем пользователя в localStorage
+      const savedUser = localStorage.getItem('user')
       if (savedUser) {
         try {
           const user = JSON.parse(savedUser)
-          if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
+          if (user.email && user.email.toLowerCase() === normalizedEmail) {
             userFound = true
-            // Генерируем новый пароль (16 символов)
-            generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
-            
-            // Обновляем пароль пользователя
-            const updatedUser = {
-              ...user,
-              password: generatedPassword
-            }
-            localStorage.setItem('user', JSON.stringify(updatedUser))
-            console.log('Пароль обновлен для пользователя:', user.email)
+            userToUpdate = user
+            console.log('Пользователь найден в localStorage:', user.email)
           }
         } catch (parseError) {
           console.error('Ошибка парсинга пользователя из localStorage:', parseError)
         }
       }
 
-      // Также проверяем моковые данные
-      const mockUsers = [
-        { email: 'client@example.com', name: 'Анна Смирнова', id: 1, role: 'client' },
-        { email: 'astrologer@example.com', name: 'Елена Петрова', id: 2, role: 'astrologer' },
-        { email: 'l@test.com', name: 'Лена', id: 3, role: 'astrologer' },
-        { email: 'lusa@test.com', name: 'Люся', id: 4, role: 'astrologer' },
-        { email: 'lida@test.com', name: 'Лида', id: 5, role: 'astrologer' }
-      ]
-
-      // Проверяем моковые данные только если пользователь не найден в localStorage
+      // Если пользователь не найден в localStorage, проверяем моковые данные
       if (!userFound) {
-        const mockUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase())
+        const mockUsers = [
+          { email: 'client@example.com', name: 'Анна Смирнова', id: 1, role: 'client' },
+          { email: 'astrologer@example.com', name: 'Елена Петрова', id: 2, role: 'astrologer' },
+          { email: 'l@test.com', name: 'Лена', id: 3, role: 'astrologer' },
+          { email: 'lusa@test.com', name: 'Люся', id: 4, role: 'astrologer' },
+          { email: 'lida@test.com', name: 'Лида', id: 5, role: 'astrologer' }
+        ]
+
+        const mockUser = mockUsers.find(u => u.email.toLowerCase() === normalizedEmail)
         if (mockUser) {
           userFound = true
-          // Генерируем новый пароль (16 символов)
-          generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
-          
-          // Сохраняем мокового пользователя в localStorage с новым паролем
-          const updatedMockUser = {
-            ...mockUser,
-            password: generatedPassword
-          }
-          localStorage.setItem('user', JSON.stringify(updatedMockUser))
-          console.log('Пароль восстановлен для мокового пользователя:', mockUser.email)
+          userToUpdate = mockUser
+          console.log('Моковый пользователь найден:', mockUser.email)
         }
       }
 
-      if (userFound) {
+      if (userFound && userToUpdate) {
+        // Генерируем новый надежный пароль
+        generatedPassword = generatePassword()
+        
+        // Обновляем данные пользователя с новым паролем
+        const updatedUser = {
+          ...userToUpdate,
+          email: normalizedEmail, // Сохраняем нормализованный email
+          password: generatedPassword
+        }
+        
+        // Сохраняем обновленного пользователя в localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        console.log('Пароль успешно обновлен для пользователя:', updatedUser.email)
+        console.log('Новый пароль:', generatedPassword)
+        
         setNewPassword(generatedPassword)
         setSuccess(true)
-        console.log('Новый пароль сгенерирован успешно')
       } else {
         setError('Пользователь с таким email не найден. Проверьте правильность введенного email.')
       }
     } catch (error) {
       console.error('Ошибка восстановления пароля:', error)
-      setError('Произошла ошибка при восстановлении пароля')
+      setError('Произошла ошибка при восстановлении пароля. Попробуйте еще раз.')
     } finally {
       setIsLoading(false)
     }
