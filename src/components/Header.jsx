@@ -30,7 +30,7 @@ const Header = () => {
         <div className="header-grid">
           <div className="logo-column">
             <Link to="/" className="logo">
-              <img src="/images/Лого.png" alt="astrotop.pro" />
+              <img src="https://astrotop.pro/images/%D0%9B%D0%BE%D0%B3%D0%BE.png" alt="astrotop.pro" />
             </Link>
           </div>
 
