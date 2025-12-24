@@ -18,25 +18,38 @@ const handleResponse = async (response, fallbackMessage) => {
   const contentType = response.headers.get('content-type')
   if (!contentType || !contentType.includes('application/json')) {
     // Если сервер вернул HTML (например, 404 страницу), значит бэкенд недоступен
+    // Не пытаемся парсить как JSON
     throw new Error('Сервер недоступен. Проверьте, что бэкенд запущен и правильно настроен.')
   }
   
   if (response.ok) {
     try {
-      return await response.json()
+      const text = await response.text()
+      // Проверяем, что это действительно JSON, а не HTML
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<!doctype')) {
+        throw new Error('Сервер вернул HTML вместо JSON. Бэкенд недоступен.')
+      }
+      return JSON.parse(text)
     } catch (error) {
+      if (error.message.includes('HTML')) {
+        throw error
+      }
       throw new Error('Неверный формат ответа от сервера')
     }
   }
   
   let errorMessage = fallbackMessage
   try {
-    const errorBody = await response.json()
-    if (errorBody?.error) {
-      errorMessage = errorBody.error
+    const text = await response.text()
+    // Проверяем, что это действительно JSON
+    if (!text.trim().startsWith('<!DOCTYPE') && !text.trim().startsWith('<!doctype')) {
+      const errorBody = JSON.parse(text)
+      if (errorBody?.error) {
+        errorMessage = errorBody.error
+      }
     }
   } catch (error) {
-    // ignore
+    // ignore - используем fallbackMessage
   }
   throw new Error(errorMessage)
 }
@@ -63,6 +76,27 @@ export const NewsProvider = ({ children }) => {
   const [error, setError] = useState(null)
 
   const fetchNews = useCallback(async () => {
+    // Если API_BASE_URL не настроен, используем только localStorage
+    if (!API_BASE_URL || API_BASE_URL.trim() === '') {
+      console.warn('VITE_API_URL не настроен. Используются только локальные данные.')
+      setLoading(false)
+      const backup = localStorage.getItem('news_backup')
+      if (backup) {
+        try {
+          const parsed = JSON.parse(backup)
+          const newsArray = Array.isArray(parsed) ? parsed : []
+          setPosts(newsArray)
+          setError('Бэкенд не настроен. Используются сохраненные новости.')
+        } catch (e) {
+          console.error('Ошибка загрузки из localStorage:', e)
+          setError('Бэкенд не настроен. Добавьте VITE_API_URL в настройках Vercel.')
+        }
+      } else {
+        setError('Бэкенд не настроен. Добавьте VITE_API_URL в настройках Vercel.')
+      }
+      return
+    }
+
     setLoading(true)
     try {
       const response = await fetch(`${API_BASE_URL}/api/news`)
@@ -95,7 +129,7 @@ export const NewsProvider = ({ children }) => {
       
       // Если нет данных в localStorage, показываем ошибку, но не очищаем существующие посты
       if (posts.length === 0) {
-      setError(err.message || 'Не удалось загрузить новости. Убедитесь, что сервер запущен.')
+        setError(err.message || 'Не удалось загрузить новости. Убедитесь, что сервер запущен.')
       } else {
         setError('Сервер недоступен. Используются сохраненные новости.')
       }
