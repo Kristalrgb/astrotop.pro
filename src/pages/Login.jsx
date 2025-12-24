@@ -29,26 +29,46 @@ const Login = () => {
     setError('')
 
     console.log('=== ПОПЫТКА ВХОДА ===')
-    console.log('Email:', formData.email)
-    console.log('Пароль:', formData.password)
+    console.log('Email из формы:', formData.email)
+    console.log('Пароль из формы:', formData.password)
 
     try {
       // Проверяем зарегистрированных пользователей в localStorage
       const savedUser = localStorage.getItem('user')
-      console.log('Сохраненный пользователь в localStorage:', savedUser)
+      console.log('Сохраненный пользователь (сырой JSON):', savedUser)
       
       let userData = null
       
       if (savedUser) {
-        const user = JSON.parse(savedUser)
-        console.log('Парсированный пользователь:', user)
-        console.log('Сравнение email:', user.email === formData.email)
-        console.log('Сравнение пароля:', user.password === formData.password)
-        
-        if (user.email === formData.email && user.password === formData.password) {
-          userData = user
-          console.log('Пользователь найден в localStorage')
+        try {
+          const user = JSON.parse(savedUser)
+          console.log('Парсированный пользователь:', user)
+          console.log('Email пользователя из localStorage:', user.email)
+          console.log('Пароль пользователя из localStorage:', user.password)
+          
+          // Нормализуем email для сравнения (приводим к нижнему регистру)
+          const normalizedUserEmail = user.email ? user.email.toLowerCase().trim() : ''
+          const normalizedFormEmail = formData.email.toLowerCase().trim()
+          
+          console.log('Нормализованный email пользователя:', normalizedUserEmail)
+          console.log('Нормализованный email из формы:', normalizedFormEmail)
+          console.log('Сравнение email:', normalizedUserEmail === normalizedFormEmail)
+          console.log('Сравнение пароля:', user.password === formData.password)
+          
+          // Проверяем email и пароль
+          if (normalizedUserEmail === normalizedFormEmail && user.password === formData.password) {
+            userData = user
+            console.log('✅ Пользователь найден в localStorage - вход выполнен!')
+          } else {
+            console.log('❌ Пользователь не найден:')
+            console.log('  - Email совпадает?', normalizedUserEmail === normalizedFormEmail)
+            console.log('  - Пароль совпадает?', user.password === formData.password)
+          }
+        } catch (parseError) {
+          console.error('❌ Ошибка парсинга пользователя из localStorage:', parseError)
         }
+      } else {
+        console.log('⚠️ В localStorage нет сохраненного пользователя')
       }
       
       // Если пользователь не найден, проверяем моковые данные

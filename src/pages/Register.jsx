@@ -87,9 +87,9 @@ const Register = () => {
       // Моковая регистрация
       const userData = {
         id: Date.now(),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
+        name: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(), // Нормализуем email (нижний регистр, без пробелов)
+        phone: formData.phone.trim(),
         password: formData.password, // Сохраняем пароль
         role: formData.role,
         profileImage: profileImage

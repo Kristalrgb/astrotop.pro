@@ -51,8 +51,16 @@ export const AuthProvider = ({ children }) => {
   const checkExistingUser = (email) => {
     const savedUser = localStorage.getItem('user')
     if (savedUser) {
-      const user = JSON.parse(savedUser)
-      return user.email === email ? user : null
+      try {
+        const user = JSON.parse(savedUser)
+        // Нормализуем email для сравнения
+        const normalizedUserEmail = user.email ? user.email.toLowerCase().trim() : ''
+        const normalizedInputEmail = email ? email.toLowerCase().trim() : ''
+        return normalizedUserEmail === normalizedInputEmail ? user : null
+      } catch (error) {
+        console.error('Ошибка парсинга пользователя:', error)
+        return null
+      }
     }
     return null
   }
