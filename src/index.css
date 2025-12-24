@@ -1,9 +1,176 @@
-/* Базовые стили для компонентов */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: url('/images/background.jpg') center center / cover no-repeat fixed;
+  background-color: #667eea; /* Fallback если изображение не загрузится */      
+  min-height: 100vh;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.dashboard-overlay {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 30px;
+  padding: 40px 35px 50px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: none;
+}
+
+@media (max-width: 768px) {
+  .dashboard-overlay {
+    padding: 25px 20px 35px;
+    border-radius: 24px;
+  }
+}
+
+.hero-overlay {
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .hero-overlay {
+    padding: 30px 20px;
+  }
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: url('/images/background.jpg') center center / cover no-repeat;    
+  background-color: #667eea; /* Fallback если изображение не загрузится */      
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  z-index: -1;
+}
+
+.btn-primary,
+.btn-primary * {
+  position: relative;
+  z-index: 1;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* Кнопки с голубым цветом #007bff */
+.choose-specialist-btn,
+.start-now-btn,
+.register-btn,
+.book-appointment-btn,
+.book-btn {
+  background: #007bff !important;
+  background-color: #007bff !important;
+  background-image: none !important;
+}
+
+.choose-specialist-btn::before,
+.start-now-btn::before,
+.register-btn::before,
+.book-appointment-btn::before,
+.book-btn::before {
+  display: none !important;
+}
+
+.choose-specialist-btn:hover,
+.start-now-btn:hover,
+.register-btn:hover,
+.book-appointment-btn:hover,
+.book-btn:hover {
+  background-color: #0056b3 !important; /* Более темный голубой при наведении */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+}
+
+/* Кнопка "Забронировать" в модальном окне */
+.booking-modal .btn-primary,
+button[type="submit"].btn-primary {
+  background: #007bff !important; /* Голубой цвет */
+  background-color: #007bff !important;
+  background-image: none !important;
+}
+
+.booking-modal .btn-primary::before,
+button[type="submit"].btn-primary::before {
+  display: none !important;
+}
+
+.booking-modal .btn-primary:hover,
+button[type="submit"].btn-primary:hover {
+  background-color: #0056b3 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-secondary:hover {
+  background: #667eea;
+  color: white;
+}
+
+.btn-gray {
+  background: #6c757d;
+  color: white;
+  border: none;
+}
+
+.btn-gray:hover {
+  background: #5a6268;
+  color: white;
+}
+
+.btn-blue-text {
+  color: #007bff !important;
+}
+
 .card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 30px;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
 .form-group {
@@ -13,63 +180,726 @@
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #333;
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  color: #555;
 }
 
-.form-group input {
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 2px solid #e1e5e9;
   border-radius: 8px;
   font-size: 16px;
-  transition: border-color 0.2s;
+  transition: border-color 0.3s ease;
   box-sizing: border-box;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.btn {
-  padding: 12px 24px;
-  border: none;
+.rating {
+  display: flex;
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.star {
+  color: #ffd700;
+  font-size: 20px;
+}
+
+.star.empty {
+  color: #e1e5e9;
+}
+
+.video-chat-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.video-stream {
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.video-stream video {
+  width: 100%;
+  height: 225px;
+  object-fit: cover;
+}
+
+.video-stream .user-name {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.calendar-container {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.time-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.time-slot {
+  padding: 12px;
+  border: 2px solid #e1e5e9;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
+  background: white;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   text-align: center;
-  text-decoration: none;
-  display: inline-block;
+  font-weight: 500;
 }
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.time-slot:hover {
+  border-color: #667eea;
+  background: #f8f9fa;
 }
 
-.btn-primary {
+.time-slot.selected {
   background: #667eea;
   color: white;
+  border-color: #667eea;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+.time-slot.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
 }
 
-.btn-secondary {
-  background: #6c757d;
+/* Header Styles */
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.header-grid {
+  display: grid;
+  grid-template-columns: minmax(90px, 150px) 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 6px;
+  row-gap: 0;
+  align-items: center;
+  margin-bottom: -6px;
+  padding: 2px 0;
+}
+
+.logo-column {
+  grid-row: 1 / span 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-column img {
+  max-height: 99px;
+  width: auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.nav {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links li {
+  margin: 0;
+}
+
+.nav-links a {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  font-size: 16px;
+}
+
+.nav-links a:hover {
+  color: #667eea;
+}
+
+.admin-link {
+  color: #9c27b0 !important;
+  font-weight: 600 !important;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #667eea;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.consultations-info {
+  grid-column: 2;
+  grid-row: 2;
+  background: transparent;
+  border-radius: 0;
+  padding: 6px 0;
+  color: #7e5bf7;
+  box-shadow: none;
+  margin-top: -6px;
+}
+
+.consultations-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  flex-wrap: nowrap;
+}
+
+.consultations-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+  font-weight: 600;
+  font-size: clamp(0.67rem, 0.92vw, 0.86rem);
+  white-space: nowrap;
+  color: #7e5bf7;
+}
+
+.consultations-item svg {
+  font-size: clamp(12px, 1.9vw, 16px);
+  color: #7e5bf7;
+}
+
+.consultations-item h4 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Footer Styles */
+.footer {
+  background: rgba(26, 26, 26, 0.95);
   color: white;
+  padding: 60px 0 30px;
+  margin-top: 80px;
+  backdrop-filter: blur(10px);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: #5a6268;
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 40px;
+  margin-bottom: 40px;
 }
 
-/* Дополнительные медиа-запросы для улучшенной адаптивности добавлены в конец файла */
+.footer-section h3 {
+  margin-bottom: 20px;
+  color: #667eea;
+  font-size: 1.3rem;
+}
+
+.footer-section p {
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+.footer-section a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-section a:hover {
+  color: #667eea;
+}
+
+/* Hero Section */
+.hero {
+  padding: 120px 0 80px;
+  text-align: center;
+  position: relative;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hero p {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Specialists Grid */
+.specialists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.specialist-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.specialist-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.specialist-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.specialist-info {
+  padding: 20px;
+}
+
+.specialist-name {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 600;
+}
+
+.specialist-specialty {
+  color: #666;
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+.specialist-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+.specialist-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 15px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .header-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .logo-column {
+    grid-row: 1;
+    margin-bottom: 10px;
+  }
+
+  .nav {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .consultations-info {
+    grid-column: 1;
+    grid-row: 3;
+    padding: 8px 0 !important;
+  }
+
+  .mobile-menu-btn {
+    display: block !important;
+  }
+  
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    flex-direction: column;
+    padding: 20px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+  }
+  
+  .nav-links.mobile-open {
+    display: flex;
+  }
+  
+  .nav-links li {
+    margin: 10px 0;
+  }
+
+  .consultations-grid {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px !important;
+  }
+
+  .consultations-item h4 {
+    font-size: 0.95rem !important;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero p {
+    font-size: 1.1rem;
+  }
+
+  .specialists-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .consultations-grid {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 992px) {
+  .consultations-grid {
+    flex-wrap: wrap;
+  }
+}
+
+/* SpecialistCard Styles */
+.specialist-header {
+  display: flex;
+  gap: 15px;
+  padding: 20px;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.specialist-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.specialist-avatar img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #667eea;
+}
+
+.specialist-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid white;
+}
+
+.specialist-status.online {
+  background: #4CAF50;
+}
+
+.specialist-status.offline {
+  background: #ccc;
+}
+
+.specialist-info {
+  flex: 1;
+}
+
+.star-icon {
+  color: #ffd700;
+  font-size: 18px;
+}
+
+.reviews {
+  color: #666;
+  font-size: 0.9rem;
+  margin-left: 5px;
+}
+
+.specialist-details {
+  padding: 20px;
+}
+
+.specialist-stats {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.stat svg {
+  color: #667eea;
+}
+
+.specialist-description {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.specialist-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tag {
+  background: #f0f0f0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #667eea;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.social-link:hover {
+  color: #0056b3;
+}
+
+.specialist-pricing {
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e1e5e9;
+}
+
+.specialist-pricing h4 {
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 1rem;
+}
+
+.price-display {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 20px;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.per-minute {
+  color: #666;
+  font-size: 1rem;
+}
+
+.duration-selection,
+.currency-selection {
+  margin-bottom: 20px;
+}
+
+.duration-selection label,
+.currency-selection label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #333;
+}
+
+.duration-options,
+.currency-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.duration-option,
+.currency-option {
+  padding: 8px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.duration-option:hover,
+.currency-option:hover {
+  border-color: #667eea;
+  background: #f8f9fa;
+}
+
+.duration-option.active,
+.currency-option.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.total-price {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 2px solid #667eea;
+}
+
+.total-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.specialist-products {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e5e9;
+}
+
+.specialist-products h4 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.specialist-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.specialist-product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.specialist-product-media {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.product-emoji {
+  font-size: 1.5rem;
+}
+
+.specialist-product-info {
+  flex: 1;
+}
+
+.specialist-product-name {
+  margin: 0 0 5px 0;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.specialist-product-price {
+  color: #667eea;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.specialist-product-link {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.specialist-actions {
+  padding: 20px;
+  border-top: 1px solid #e1e5e9;
+  display: flex;
+  gap: 10px;
+}
+
+.specialist-actions .btn {
+  flex: 1;
+}
