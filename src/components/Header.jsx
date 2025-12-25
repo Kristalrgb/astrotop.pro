@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import LanguageSwitcher from './LanguageSwitcher'
-import { FaSignOutAlt, FaBars, FaVideo, FaPhone, FaClock, FaUsers, FaCreditCard, FaGlobe } from 'react-icons/fa'
+import { FaSignOutAlt, FaBars } from 'react-icons/fa'
 import AdBanner from './AdBanner'
 
 const Header = () => {
@@ -81,40 +81,6 @@ const Header = () => {
               </li>
             </ul>
           </nav>
-
-          <div className="consultations-info">
-            <div className="consultations-grid">
-              <div className="consultations-item">
-                <FaVideo />
-                <h4>{translate('Видео консультации', 'Video consultations')}</h4>
-              </div>
-
-              <div className="consultations-item">
-                <FaPhone />
-                <h4>{translate('Аудио консультации', 'Audio consultations')}</h4>
-              </div>
-
-              <div className="consultations-item">
-                <FaClock />
-                <h4>{translate('Удобное время', 'Convenient time')}</h4>
-              </div>
-
-              <div className="consultations-item">
-                <FaUsers />
-                <h4>{translate('Групповые сессии', 'Group sessions')}</h4>
-              </div>
-
-              <div className="consultations-item">
-                <FaCreditCard />
-                <h4>{translate('Поминутная оплата', 'Pay per minute')}</h4>
-              </div>
-
-              <div className="consultations-item">
-                <FaGlobe />
-                <h4>{translate('Специалисты Online', 'Specialists Online')}</h4>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
