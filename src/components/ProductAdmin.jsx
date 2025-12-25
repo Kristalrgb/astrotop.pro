@@ -131,7 +131,7 @@ const ProductAdmin = ({ products = [], onAddProduct, onUpdateProduct, onDeletePr
   return (
     <div className="product-admin">
       <div className="admin-header">
-        <h2>🛍️ Управление товарами</h2>
+        <h2 style={{ color: 'white' }}>🛍️ Управление товарами</h2>
         <div className="admin-actions">
           <button 
             className="btn btn-secondary"
@@ -343,7 +343,7 @@ const ProductAdmin = ({ products = [], onAddProduct, onUpdateProduct, onDeletePr
       )}
 
       <div className="products-list">
-        <h3>Список товаров ({products.length})</h3>
+        <h3 style={{ color: 'white' }}>Список товаров ({products.length})</h3>
         <div className="products-table">
           {products.map(product => (
             <div key={product.id} className="product-row">
