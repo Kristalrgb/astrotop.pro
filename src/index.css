@@ -7,7 +7,7 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: url('/images/background.jpg') center center / cover no-repeat fixed;
-  background-color: #ffffff; /* Fallback если изображение не загрузится */      
+  background-color: #667eea; /* Fallback если изображение не загрузится */      
   min-height: 100vh;
   color: #333;
 }
@@ -61,7 +61,7 @@ body {
 
 .btn-primary {
   background: url('/images/background.jpg') center center / cover no-repeat;    
-  background-color: #ffffff; /* Fallback если изображение не загрузится */      
+  background-color: #667eea; /* Fallback если изображение не загрузится */      
   color: white;
   position: relative;
   z-index: 1;
@@ -141,12 +141,12 @@ button[type="submit"].btn-primary:hover {
 
 .btn-secondary {
   background: white;
-  color: #ffffff;
-  border: 2px solid #ffffff;
+  color: #667eea;
+  border: 2px solid #667eea;
 }
 
 .btn-secondary:hover {
-  background: #ffffff;
+  background: #667eea;
   color: white;
 }
 
@@ -200,7 +200,7 @@ button[type="submit"].btn-primary:hover {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #ffffff;
+  border-color: #667eea;
 }
 
 .rating {
@@ -275,14 +275,14 @@ button[type="submit"].btn-primary:hover {
 }
 
 .time-slot:hover {
-  border-color: #ffffff;
+  border-color: #667eea;
   background: #f8f9fa;
 }
 
 .time-slot.selected {
-  background: #ffffff;
+  background: #667eea;
   color: white;
-  border-color: #ffffff;
+  border-color: #667eea;
 }
 
 .time-slot.disabled {
@@ -360,7 +360,7 @@ button[type="submit"].btn-primary:hover {
 }
 
 .nav-links a:hover {
-  color: #ffffff;
+  color: #667eea;
 }
 
 .admin-link {
@@ -373,7 +373,7 @@ button[type="submit"].btn-primary:hover {
   background: none;
   border: none;
   font-size: 24px;
-  color: #ffffff;
+  color: #667eea;
   cursor: pointer;
   padding: 5px;
 }
@@ -439,7 +439,7 @@ button[type="submit"].btn-primary:hover {
 
 .footer-section h3 {
   margin-bottom: 20px;
-  color: #ffffff;
+  color: #667eea;
   font-size: 1.3rem;
 }
 
@@ -456,7 +456,7 @@ button[type="submit"].btn-primary:hover {
 }
 
 .footer-section a:hover {
-  color: #ffffff;
+  color: #667eea;
 }
 
 /* Hero Section */
@@ -537,7 +537,7 @@ button[type="submit"].btn-primary:hover {
 .specialist-price {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #667eea;
   margin-bottom: 15px;
 }
 
@@ -648,7 +648,7 @@ button[type="submit"].btn-primary:hover {
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #ffffff;
+  border: 3px solid #667eea;
 }
 
 .specialist-status {
@@ -704,7 +704,7 @@ button[type="submit"].btn-primary:hover {
 }
 
 .stat svg {
-  color: #ffffff;
+  color: #667eea;
 }
 
 .specialist-description {
@@ -732,7 +732,7 @@ button[type="submit"].btn-primary:hover {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #ffffff;
+  color: #667eea;
   text-decoration: none;
   transition: color 0.3s ease;
 }
@@ -763,7 +763,7 @@ button[type="submit"].btn-primary:hover {
 .price {
   font-size: 2rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #667eea;
 }
 
 .per-minute {
@@ -804,15 +804,15 @@ button[type="submit"].btn-primary:hover {
 
 .duration-option:hover,
 .currency-option:hover {
-  border-color: #ffffff;
+  border-color: #667eea;
   background: #f8f9fa;
 }
 
 .duration-option.active,
 .currency-option.active {
-  background: #ffffff;
+  background: #667eea;
   color: white;
-  border-color: #ffffff;
+  border-color: #667eea;
 }
 
 .total-price {
@@ -820,13 +820,13 @@ button[type="submit"].btn-primary:hover {
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
-  border: 2px solid #ffffff;
+  border: 2px solid #667eea;
 }
 
 .total-amount {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #667eea;
 }
 
 .specialist-products {
@@ -883,7 +883,7 @@ button[type="submit"].btn-primary:hover {
 }
 
 .specialist-product-price {
-  color: #ffffff;
+  color: #667eea;
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -902,4 +902,152 @@ button[type="submit"].btn-primary:hover {
 
 .specialist-actions .btn {
   flex: 1;
+}
+
+/* News Feed Styles */
+.news-feed {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.news-feed__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.news-feed__subtitle {
+  margin: 0 0 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.news-feed__title {
+  margin: 0;
+  color: #333;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+}
+
+.news-feed__state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.news-feed__state--error {
+  color: #dc3545;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+  margin-top: 20px;
+}
+
+.news-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #e1e5e9;
+}
+
+.news-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.news-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.news-card__avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #667eea;
+}
+
+.news-card__avatar--placeholder {
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.news-card__author {
+  margin: 0;
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.news-card__date {
+  margin: 3px 0 0 0;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.news-card__title {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.news-card__image-wrapper {
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.news-card__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.news-card__content {
+  margin: 0;
+  color: #555;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .news-feed__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .news-feed {
+    padding: 20px;
+  }
 }

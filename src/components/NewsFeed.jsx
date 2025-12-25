@@ -52,9 +52,10 @@ const NewsFeed = ({ limit, showManageLink = false, emptyText = 'Публикац
         <div className="news-feed__state">{emptyText}</div>
       )}
 
-      <div className="news-grid">
-        {items.map(post => (
-          <article key={post.id} className="news-card">
+      {!loading && !error && items.length > 0 && (
+        <div className="news-grid">
+          {items.map(post => (
+            <article key={post.id} className="news-card">
             <div className="news-card__header">
               {post.authorAvatar ? (
                 <img
@@ -82,9 +83,10 @@ const NewsFeed = ({ limit, showManageLink = false, emptyText = 'Публикац
             )}
 
             <p className="news-card__content">{post.content}</p>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
