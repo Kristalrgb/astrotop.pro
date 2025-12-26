@@ -247,7 +247,7 @@ const Profile = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '40px', color: 'white' }}
               />
             </div>
           </div>
