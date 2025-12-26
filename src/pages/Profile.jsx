@@ -187,7 +187,7 @@ const Profile = () => {
 
         <div className="profile-form">
           <div className="form-group">
-            <label htmlFor="name">{t('register.fullName')}</label>
+            <label htmlFor="name" style={{ color: 'white' }}>{t('register.fullName')}</label>
             <div style={{ position: 'relative' }}>
               <FaUser style={{
                 position: 'absolute',
@@ -203,13 +203,13 @@ const Profile = () => {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '40px', color: 'white' }}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">{t('register.email')}</label>
+            <label htmlFor="email" style={{ color: 'white' }}>{t('register.email')}</label>
             <div style={{ position: 'relative' }}>
               <FaEnvelope style={{
                 position: 'absolute',
@@ -225,13 +225,13 @@ const Profile = () => {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '40px', color: 'white' }}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="phone">{t('register.phone')}</label>
+            <label htmlFor="phone" style={{ color: 'white' }}>{t('register.phone')}</label>
             <div style={{ position: 'relative' }}>
               <FaPhone style={{
                 position: 'absolute',
