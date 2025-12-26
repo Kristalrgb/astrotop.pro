@@ -118,7 +118,9 @@ const SpecialistCard = ({ specialist }) => {
           </div>
           
           <div className="specialist-info">
-            <h3 className="specialist-name">{specialist.name}</h3>
+            <Link to={`/specialists/${specialist.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <h3 className="specialist-name" style={{ cursor: 'pointer', transition: 'color 0.2s' }}>{specialist.name}</h3>
+            </Link>
             <p className="specialist-specialty">{specialist.specialty}</p>
             <div className="specialist-rating">
               <FaStar className="star-icon" />
@@ -286,17 +288,20 @@ const SpecialistCard = ({ specialist }) => {
         )}
 
         <div className="specialist-actions">
+          <Link 
+            to={`/specialists/${specialist.id}`}
+            className="btn btn-secondary"
+            style={{ flex: 1, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            Подробнее
+          </Link>
           <button 
             className="btn btn-primary book-btn"
             onClick={handleBookConsultation}
+            style={{ flex: 1 }}
           >
             <FaCalendarAlt />
             {t('specialists.book')}
-          </button>
-          
-          <button className="btn btn-secondary">
-            <FaVideo />
-            {t('consultation.join')}
           </button>
         </div>
       </div>

@@ -657,7 +657,7 @@ const VideoChat = () => {
   }
 
   return (
-    <div style={{ height: '100vh', background: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100vh', background: 'white', display: 'flex', flexDirection: 'column' }}>
       {/* Заголовок сессии */}
       <div style={{ 
         background: 'rgba(0,0,0,0.8)', 

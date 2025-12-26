@@ -169,17 +169,9 @@ const Profile = () => {
         {/* Аватар профиля */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           {profileImage ? (
-            <img 
-              src={profileImage} 
-              alt="Profile" 
-              className="profile-avatar" 
-              style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
-            />
+            <img src={profileImage} alt="Profile" className="profile-avatar" />
           ) : (
-            <div 
-              className="profile-avatar-placeholder"
-              style={{ width: '50px', height: '50px', borderRadius: '50%' }}
-            >
+            <div className="profile-avatar-placeholder">
               <FaUser />
             </div>
           )}

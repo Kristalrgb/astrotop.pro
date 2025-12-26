@@ -4,6 +4,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import Specialists from './pages/Specialists'
+import SpecialistDetail from './pages/SpecialistDetail'
 import Store from './pages/Store'
 import School from './pages/School'
 import Profile from './pages/Profile'
@@ -39,6 +40,7 @@ function App() {
                       <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/specialists" element={<Specialists />} />
+                        <Route path="/specialists/:id" element={<SpecialistDetail />} />
                         <Route path="/store" element={<Store />} />
                         <Route path="/school" element={<School />} />
                         <Route path="/profile" element={<Profile />} />

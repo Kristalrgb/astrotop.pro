@@ -60,12 +60,14 @@ const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState('profile')
   const [profile, setProfile] = useState({
     name: user?.name || 'Елена Петрова',
-    specialty: 'Астролог',
-    experience: '15 лет',
-    description: 'Профессиональный астролог с многолетним опытом работы. Специализируюсь на натальных картах, синастрии и прогнозах.',
-    price: 3000,
-    languages: ['Русский', 'Английский'],
-    services: ['Натальная карта', 'Синастрия', 'Прогнозы', 'Элективная астрология']
+    email: user?.email || '',
+    phone: user?.phone || '',
+    specialty: user?.specialty || 'Астролог',
+    experience: user?.experience || '15 лет',
+    description: user?.description || 'Профессиональный астролог с многолетним опытом работы. Специализируюсь на натальных картах, синастрии и прогнозах.',
+    price: user?.price || 3000,
+    languages: user?.languages || ['Русский', 'Английский'],
+    services: user?.services || ['Натальная карта', 'Синастрия', 'Прогнозы', 'Элективная астрология']
   })
   
   const [socialLinks, setSocialLinks] = useState([
@@ -280,7 +282,13 @@ const AstrologerDashboard = () => {
         ...prev,
         name: user.name || prev.name,
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone || '',
+        specialty: user.specialty || prev.specialty,
+        experience: user.experience || prev.experience,
+        description: user.description || prev.description,
+        price: user.price || prev.price,
+        languages: user.languages || prev.languages,
+        services: user.services || prev.services
       }))
     }
   }, [user])
@@ -385,12 +393,18 @@ const AstrologerDashboard = () => {
     }
 
     try {
-      // Обновляем данные пользователя
+      // Обновляем данные пользователя со всеми полями профиля
       const updatedUser = {
         ...user,
         name: profile.name,
         email: profile.email,
-        phone: profile.phone
+        phone: profile.phone,
+        specialty: profile.specialty,
+        experience: profile.experience,
+        description: profile.description,
+        price: profile.price,
+        languages: profile.languages,
+        services: profile.services
       }
       
       console.log('Обновленные данные пользователя:', updatedUser)
@@ -399,8 +413,16 @@ const AstrologerDashboard = () => {
       updateUser(updatedUser)
       console.log('Пользователь обновлен в AuthContext')
       
-      // Обновляем специалиста в SpecialistsContext
-      updateSpecialist(updatedUser)
+      // Обновляем специалиста в SpecialistsContext с полными данными
+      const updatedSpecialistData = {
+        ...updatedUser,
+        rating: user.rating || 0,
+        reviews: user.reviews || 0,
+        pricePerMinute: user.pricePerMinute || Math.round(profile.price / 60),
+        consultations: user.consultations || 0,
+        tags: profile.services || []
+      }
+      updateSpecialist(updatedSpecialistData)
       console.log('Специалист обновлен в SpecialistsContext')
       
       setIsEditing(false)

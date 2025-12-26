@@ -107,9 +107,14 @@ const Home = () => {
                     <span>{specialist.rating}</span>
                   </div>
                   <p className="specialist-price">{specialist.price}</p>
-                  <Link to={`/specialists/${specialist.id}`} className="btn btn-primary book-appointment-btn" style={{ width: '100%' }}>
-                    {t('home.topSpecialists.book')}
-                  </Link>
+                  <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                    <Link to={`/specialists/${specialist.id}`} className="btn btn-secondary" style={{ width: '100%', textAlign: 'center' }}>
+                      Подробнее о специалисте
+                    </Link>
+                    <Link to={`/specialists/${specialist.id}`} className="btn btn-primary book-appointment-btn" style={{ width: '100%' }}>
+                      {t('home.topSpecialists.book')}
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
