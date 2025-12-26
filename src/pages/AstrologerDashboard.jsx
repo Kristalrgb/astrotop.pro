@@ -6,7 +6,7 @@ import { useSpecialists } from '../contexts/SpecialistsContext'
 import { useProducts } from '../contexts/ProductsContext'
 import { useLectures } from '../contexts/LecturesContext'
 import ProductAdmin from '../components/ProductAdmin'
-import { FaYoutube, FaTelegram, FaWhatsapp, FaInstagram, FaEdit, FaTrash, FaCalendarAlt, FaVideo, FaUsers, FaStar, FaUser, FaNewspaper, FaShoppingBag, FaFolder, FaFolderPlus, FaFolderOpen, FaFileAlt, FaDownload, FaPlus, FaBook, FaSave, FaTimes, FaExternalLinkAlt } from 'react-icons/fa'
+import { FaYoutube, FaTelegram, FaWhatsapp, FaInstagram, FaEdit, FaTrash, FaCalendarAlt, FaVideo, FaUsers, FaStar, FaUser, FaNewspaper, FaShoppingBag, FaFolder, FaFolderPlus, FaFolderOpen, FaFileAlt, FaDownload, FaPlus, FaBook, FaSave, FaTimes, FaExternalLinkAlt, FaCloudUploadAlt } from 'react-icons/fa'
 import { useNews } from '../contexts/NewsContext'
 
 const ASTROLOGER_ARCHIVE_STORAGE_KEY = 'astrologerArchiveFolders'
@@ -223,10 +223,10 @@ const AstrologerDashboard = () => {
       
       // Более понятное сообщение для пользователя
       if (errorMessage.includes('Сервер недоступен') || errorMessage.includes('Неверный формат')) {
-        errorMessage = 'Сервер недоступен. Новость сохранена локально. Для публикации на сервере убедитесь, что бэкенд запущен.'
+        errorMessage = 'Сервер недоступен. Новость сохранена локально. Синхронизация произойдет автоматически после восстановления связи с сервером.'
       } else if (errorMessage.includes('сохранена локально') || errorMessage.includes('обновлена локально')) {
         // Это не ошибка, а предупреждение - показываем как успех с предупреждением
-        alert('Новость сохранена локально. После запуска сервера она будет синхронизирована.')
+        alert('Новость сохранена локально. Синхронизация с сервером произойдет автоматически после восстановления связи.')
         resetPostForm()
         // Обновляем список новостей
         setTimeout(() => {
@@ -1410,7 +1410,27 @@ const AstrologerDashboard = () => {
         {!newsLoading && !newsError && myPosts.length > 0 && (
           <div className="news-grid">
             {myPosts.map(post => (
-              <div key={post.id} className="news-card">
+              <div key={post.id} className="news-card" style={{ position: 'relative' }}>
+                {post.localOnly && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    background: '#fff3cd',
+                    color: '#856404',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    zIndex: 10,
+                    border: '1px solid #ffc107'
+                  }} title="Новость сохранена локально и будет синхронизирована с сервером автоматически">
+                    <FaCloudUploadAlt />
+                    <span>Локально</span>
+                  </div>
+                )}
                 <div className="news-card__header">
                   <div>
                     <p className="news-card__author">{post.title}</p>

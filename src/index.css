@@ -295,7 +295,7 @@ button[type="submit"].btn-primary:hover {
 .header {
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 15px 0;
+  padding: 10px 0;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -304,13 +304,14 @@ button[type="submit"].btn-primary:hover {
 
 .header-grid {
   display: grid;
-  grid-template-columns: minmax(90px, 150px) 1fr;
+  grid-template-columns: minmax(60px, 90px) 1fr;
   grid-template-rows: auto auto;
   column-gap: 6px;
   row-gap: 0;
   align-items: center;
   margin-bottom: -6px;
   padding: 2px 0;
+  justify-items: stretch;
 }
 
 .logo-column {
@@ -321,7 +322,7 @@ button[type="submit"].btn-primary:hover {
 }
 
 .logo-column img {
-  max-height: 99px;
+  max-height: 60px;
   width: auto;
 }
 
@@ -335,6 +336,9 @@ button[type="submit"].btn-primary:hover {
   grid-column: 2;
   grid-row: 1;
   position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .nav-links {
@@ -345,10 +349,13 @@ button[type="submit"].btn-primary:hover {
   flex-wrap: wrap;
   margin: 0;
   padding: 0;
+  justify-content: flex-end;
 }
 
 .nav-links li {
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 
 .nav-links a {
@@ -357,6 +364,9 @@ button[type="submit"].btn-primary:hover {
   font-weight: 500;
   transition: color 0.3s ease;
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .nav-links a:hover {
@@ -556,6 +566,8 @@ button[type="submit"].btn-primary:hover {
   .nav {
     grid-column: 1;
     grid-row: 2;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .consultations-info {
@@ -579,6 +591,7 @@ button[type="submit"].btn-primary:hover {
     padding: 20px;
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
     z-index: 1000;
+    align-items: flex-start;
   }
   
   .nav-links.mobile-open {

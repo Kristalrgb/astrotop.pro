@@ -164,7 +164,7 @@ const Profile = () => {
       )}
 
       <div className="profile-section">
-        <h2>{t('profile.personalInfo')}</h2>
+        <h2 style={{ color: 'white' }}>{t('profile.personalInfo')}</h2>
         
         {/* Аватар профиля */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>

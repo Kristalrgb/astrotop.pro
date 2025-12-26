@@ -35,14 +35,6 @@ const Header = () => {
           </div>
 
           <nav className="nav">
-            <button 
-              className="mobile-menu-btn" 
-              onClick={toggleMobileMenu}
-              style={{ display: 'none', background: 'none', border: 'none', fontSize: '24px', color: '#667eea' }}
-            >
-              <FaBars />
-            </button>
-
             <ul className={`nav-links ${mobileMenuOpen ? 'mobile-open' : ''}`}>
               <li><Link to="/">{t('navigation.home')}</Link></li>
               <li><Link to="/specialists">{t('navigation.specialists')}</Link></li>
@@ -80,6 +72,13 @@ const Header = () => {
                 <LanguageSwitcher />
               </li>
             </ul>
+            <button 
+              className="mobile-menu-btn" 
+              onClick={toggleMobileMenu}
+              style={{ display: 'none', background: 'none', border: 'none', fontSize: '24px', color: '#667eea' }}
+            >
+              <FaBars />
+            </button>
           </nav>
         </div>
       </div>
