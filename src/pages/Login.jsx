@@ -198,8 +198,8 @@ const Login = () => {
       if (!userData) {
         // Собираем все возможные источники данных
         const allUsers = []
-      
-      // 1. Проверяем текущего пользователя в localStorage
+        
+        // 1. Проверяем текущего пользователя в localStorage
       const savedUser = localStorage.getItem('user')
       if (savedUser) {
         try {
@@ -290,7 +290,7 @@ const Login = () => {
           break
         }
       }
-      
+      } // Закрываем блок if (!userData)
       
       if (userData) {
         // Убеждаемся, что пароль сохранен в userData
