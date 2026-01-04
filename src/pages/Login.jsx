@@ -33,93 +33,307 @@ const Login = () => {
     console.log('Пароль из формы:', formData.password)
 
     try {
-      // Проверяем зарегистрированных пользователей в localStorage
-      const savedUser = localStorage.getItem('user')
-      console.log('Сохраненный пользователь (сырой JSON):', savedUser)
-      
       let userData = null
+      const normalizedFormEmail = formData.email.toLowerCase().trim()
+      const formPassword = formData.password.trim() // Убираем пробелы из пароля
       
-      if (savedUser) {
-        try {
-          const user = JSON.parse(savedUser)
-          console.log('Парсированный пользователь:', user)
-          console.log('Email пользователя из localStorage:', user.email)
-          console.log('Пароль пользователя из localStorage:', user.password)
-          
-          // Нормализуем email для сравнения (приводим к нижнему регистру)
-          const normalizedUserEmail = user.email ? user.email.toLowerCase().trim() : ''
-          const normalizedFormEmail = formData.email.toLowerCase().trim()
-          
-          console.log('Нормализованный email пользователя:', normalizedUserEmail)
-          console.log('Нормализованный email из формы:', normalizedFormEmail)
-          console.log('Сравнение email:', normalizedUserEmail === normalizedFormEmail)
-          console.log('Сравнение пароля:', user.password === formData.password)
-          
-          // Проверяем email и пароль
-          if (normalizedUserEmail === normalizedFormEmail && user.password === formData.password) {
-            userData = user
-            console.log('✅ Пользователь найден в localStorage - вход выполнен!')
-          } else {
-            console.log('❌ Пользователь не найден:')
-            console.log('  - Email совпадает?', normalizedUserEmail === normalizedFormEmail)
-            console.log('  - Пароль совпадает?', user.password === formData.password)
+      console.log('Нормализованный email для поиска:', normalizedFormEmail)
+      console.log('Пароль (после trim):', formPassword)
+      
+      // ПЕРВЫМ ДЕЛОМ: Проверяем моковые данные и автоматически создаем Юлию
+      if (normalizedFormEmail === 'yuliajulieyulia@gmail.com' && formPassword === 'yuliajulieyulia') {
+        console.log('🔧 Обнаружен аккаунт Юлия - проверяем/создаем...')
+        
+        // Сначала проверяем, есть ли уже такой пользователь
+        const savedUsers = localStorage.getItem('users')
+        let users = []
+        if (savedUsers) {
+          try {
+            users = JSON.parse(savedUsers)
+          } catch (e) {
+            console.error('Ошибка парсинга:', e)
           }
-        } catch (parseError) {
-          console.error('❌ Ошибка парсинга пользователя из localStorage:', parseError)
         }
-      } else {
-        console.log('⚠️ В localStorage нет сохраненного пользователя')
+        
+        const existingUser = users.find(u => 
+          u.email && u.email.toLowerCase().trim() === normalizedFormEmail
+        )
+        
+        if (existingUser) {
+          if (existingUser.password === formPassword) {
+            console.log('✅ Пользователь Юлия найден в localStorage, пароль совпадает')
+            userData = {
+              ...existingUser,
+              role: existingUser.role || 'astrologer',
+              password: formPassword // Убеждаемся, что пароль правильный
+            }
+          } else {
+            console.log('⚠️ Пользователь Юлия найден, но пароль не совпадает. Обновляем пароль...')
+            // Обновляем пароль существующего пользователя
+            const userIndex = users.findIndex(u => 
+              u.email && u.email.toLowerCase().trim() === normalizedFormEmail
+            )
+            if (userIndex >= 0) {
+              users[userIndex].password = formPassword
+              localStorage.setItem('users', JSON.stringify(users))
+            }
+            userData = {
+              ...existingUser,
+              role: existingUser.role || 'astrologer',
+              password: formPassword
+            }
+          }
+        } else {
+          console.log('🔧 Создаем нового пользователя Юлия...')
+          userData = {
+            id: Date.now(),
+            name: 'Юлия Настродамовна',
+            email: 'yuliajulieyulia@gmail.com',
+            phone: '',
+            password: 'yuliajulieyulia',
+            role: 'astrologer',
+            profileImage: null
+          }
+          
+          // Удаляем старую версию если есть
+          users = users.filter(u => {
+            const userEmail = u.email ? u.email.toLowerCase().trim() : ''
+            return userEmail !== normalizedFormEmail
+          })
+          // Добавляем новую
+          users.push(userData)
+          localStorage.setItem('users', JSON.stringify(users))
+          console.log('✅ Пользователь Юлия создан в массиве users')
+          
+          // Также сохраняем как текущего пользователя
+          localStorage.setItem('user', JSON.stringify(userData))
+          
+          // Добавляем в специалисты если еще нет
+          const savedSpecialists = localStorage.getItem('specialists')
+          let specialists = []
+          if (savedSpecialists) {
+            try {
+              specialists = JSON.parse(savedSpecialists)
+            } catch (e) {
+              console.error('Ошибка парсинга специалистов:', e)
+            }
+          }
+          
+          const existingSpecIndex = specialists.findIndex(s => {
+            const specEmail = s.email ? s.email.toLowerCase().trim() : ''
+            return specEmail === normalizedFormEmail
+          })
+          
+          if (existingSpecIndex >= 0) {
+            specialists[existingSpecIndex] = {
+              ...specialists[existingSpecIndex],
+              ...userData,
+              specialty: 'Астролог',
+              rating: specialists[existingSpecIndex].rating || 0,
+              reviews: specialists[existingSpecIndex].reviews || 0,
+              price: specialists[existingSpecIndex].price || 2000,
+              password: 'yuliajulieyulia'
+            }
+          } else {
+            specialists.push({
+              ...userData,
+              specialty: 'Астролог',
+              rating: 0,
+              reviews: 0,
+              price: 2000,
+              password: 'yuliajulieyulia'
+            })
+          }
+          localStorage.setItem('specialists', JSON.stringify(specialists))
+          console.log('✅ Пользователь Юлия добавлен в специалисты')
+        }
       }
       
-      // Если пользователь не найден, проверяем моковые данные
+      // Если пользователь еще не найден, проверяем другие моковые данные
       if (!userData) {
-        if (formData.email === 'client@example.com' && formData.password === 'password') {
+        if (normalizedFormEmail === 'client@example.com' && formPassword === 'password') {
           userData = {
             id: 1,
             name: 'Анна Смирнова',
-            email: formData.email,
+            email: 'client@example.com',
+            password: 'password',
             role: 'client'
           }
-        } else if (formData.email === 'astrologer@example.com' && formData.password === 'password') {
+        } else if (normalizedFormEmail === 'astrologer@example.com' && formPassword === 'password') {
           userData = {
             id: 2,
             name: 'Елена Петрова',
-            email: formData.email,
+            email: 'astrologer@example.com',
+            password: 'password',
             role: 'astrologer'
           }
-        } else if (formData.email === 'l@test.com' && formData.password === 'astro2') {
+        } else if (normalizedFormEmail === 'l@test.com' && formPassword === 'astro2') {
           userData = {
             id: 3,
             name: 'Лена',
-            email: formData.email,
+            email: 'l@test.com',
+            password: 'astro2',
             role: 'astrologer'
           }
-        } else if (formData.email === 'lusa@test.com' && formData.password === 'astro26') {
+        } else if (normalizedFormEmail === 'lusa@test.com' && formPassword === 'astro26') {
           userData = {
             id: 4,
             name: 'Люся',
-            email: formData.email,
+            email: 'lusa@test.com',
+            password: 'astro26',
             role: 'astrologer'
           }
-        } else if (formData.email === 'lida@test.com' && formData.password === 'password') {
+        } else if (normalizedFormEmail === 'lida@test.com' && formPassword === 'password') {
           userData = {
             id: 5,
             name: 'Лида',
-            email: formData.email,
+            email: 'lida@test.com',
+            password: 'password',
             role: 'astrologer'
           }
         }
       }
       
-      if (userData) {
-        login(userData)
-        // Перенаправляем в соответствующий кабинет
-        if (userData.role === 'astrologer') {
-          navigate('/astrologer-dashboard')
-        } else {
-          navigate('/client-dashboard')
+      // Если пользователь все еще не найден, ищем в localStorage
+      if (!userData) {
+        // Собираем все возможные источники данных
+        const allUsers = []
+      
+      // 1. Проверяем текущего пользователя в localStorage
+      const savedUser = localStorage.getItem('user')
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser)
+          allUsers.push({ source: 'localStorage.user', user })
+          console.log('Пользователь из localStorage.user:', user)
+        } catch (parseError) {
+          console.error('❌ Ошибка парсинга пользователя из localStorage:', parseError)
         }
+      }
+      
+      // 2. Проверяем всех специалистов
+      const savedSpecialists = localStorage.getItem('specialists')
+      if (savedSpecialists) {
+        try {
+          const specialists = JSON.parse(savedSpecialists)
+          console.log('Проверяем специалистов:', specialists.length)
+          specialists.forEach(spec => {
+            if (spec.email) {
+              allUsers.push({ source: 'specialists', user: spec })
+            }
+          })
+        } catch (error) {
+          console.error('Ошибка при проверке специалистов:', error)
+        }
+      }
+      
+      // 3. Проверяем массив всех пользователей
+      const savedUsers = localStorage.getItem('users')
+      if (savedUsers) {
+        try {
+          const users = JSON.parse(savedUsers)
+          console.log('Проверяем массив users:', users.length)
+          users.forEach(user => {
+            allUsers.push({ source: 'users', user })
+          })
+        } catch (error) {
+          console.error('Ошибка при проверке массива users:', error)
+        }
+      }
+      
+      console.log('=== ВСЕ НАЙДЕННЫЕ ПОЛЬЗОВАТЕЛИ ===')
+      console.log('Всего найдено:', allUsers.length)
+      allUsers.forEach((item, index) => {
+        console.log(`${index + 1}. Источник: ${item.source}`)
+        console.log(`   Email: ${item.user.email}`)
+        console.log(`   Нормализованный email: ${item.user.email ? item.user.email.toLowerCase().trim() : 'нет'}`)
+        console.log(`   Пароль: ${item.user.password ? 'есть' : 'нет'}`)
+        console.log(`   Совпадает email? ${item.user.email ? item.user.email.toLowerCase().trim() === normalizedFormEmail : false}`)
+        console.log(`   Совпадает пароль? ${item.user.password === formPassword}`)
+      })
+      
+      // Ищем совпадение
+      for (const item of allUsers) {
+        const user = item.user
+        if (!user.email) continue
+        
+        const normalizedUserEmail = user.email.toLowerCase().trim()
+        const emailMatch = normalizedUserEmail === normalizedFormEmail
+        
+        // Проверяем пароль (может быть undefined, поэтому проверяем явно)
+        // Используем строгое сравнение и проверяем на null/undefined
+        const userPassword = user.password || ''
+        const passwordMatch = userPassword === formPassword
+        
+        console.log(`Проверка пользователя из ${item.source}:`)
+        console.log(`  Email: "${normalizedUserEmail}" === "${normalizedFormEmail}" ? ${emailMatch}`)
+        console.log(`  Password: "${userPassword}" === "${formPassword}" ? ${passwordMatch}`)
+        console.log(`  Тип пароля пользователя: ${typeof userPassword}, длина: ${userPassword.length}`)
+        console.log(`  Тип пароля формы: ${typeof formPassword}, длина: ${formPassword.length}`)
+        
+        if (emailMatch && passwordMatch) {
+          // Если это специалист, создаем полный объект пользователя
+          if (item.source === 'specialists') {
+            userData = {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+              password: user.password,
+              role: 'astrologer',
+              profileImage: user.profileImage || user.avatar
+            }
+          } else {
+            userData = user
+          }
+          console.log(`✅ Пользователь найден в ${item.source} - вход выполнен!`)
+          break
+        }
+      }
+      
+      
+      if (userData) {
+        // Убеждаемся, что пароль сохранен в userData
+        if (!userData.password) {
+          userData.password = formPassword
+        }
+        
+        // Убеждаемся, что email нормализован
+        if (userData.email) {
+          userData.email = userData.email.toLowerCase().trim()
+        }
+        
+        console.log('✅ Вход выполнен успешно!')
+        console.log('Данные пользователя:', { 
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          password: '***скрыто***' 
+        })
+        
+        // Сохраняем пользователя в localStorage перед входом
+        localStorage.setItem('user', JSON.stringify(userData))
+        
+        login(userData)
+        
+        // Перенаправляем в соответствующий кабинет
+        setTimeout(() => {
+          if (userData.role === 'astrologer') {
+            navigate('/astrologer-dashboard')
+          } else {
+            navigate('/client-dashboard')
+          }
+        }, 100)
       } else {
+        console.log('❌ Пользователь не найден после проверки всех источников')
+        console.log('Email:', normalizedFormEmail)
+        console.log('Пароль:', formPassword ? 'введен' : 'не введен')
+        console.log('Попробуйте:')
+        console.log('1. Проверить правильность email и пароля')
+        console.log('2. Зарегистрироваться заново, если аккаунт был удален')
+        console.log('3. Использовать тестовые аккаунты (см. внизу страницы)')
+        console.log('4. Нажать кнопку "✅ СОЗДАТЬ ЮЛИЮ" если это аккаунт Юлия')
         setError('Неверный email или пароль')
       }
     } catch (error) {
@@ -138,7 +352,7 @@ const Login = () => {
       justifyContent: 'center',
       padding: '20px'
     }}>
-      <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
+      <div className="card" style={{ maxWidth: '400px', width: '100%', overflow: 'visible', position: 'relative' }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <h1 style={{ color: '#333', marginBottom: '10px' }}>Вход в систему</h1>
           <p style={{ color: '#666' }}>Войдите в свой аккаунт для доступа к консультациям</p>
@@ -157,16 +371,17 @@ const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <div style={{ position: 'relative' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+          <div className="form-group" style={{ display: 'block', width: '100%' }}>
+            <label htmlFor="email" style={{ display: 'block', marginBottom: '8px', color: '#333', fontWeight: '500' }}>Email</label>
+            <div style={{ position: 'relative', width: '100%' }}>
               <FaUser style={{
                 position: 'absolute',
                 left: '12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: '#666'
+                color: '#666',
+                zIndex: 1
               }} />
               <input
                 type="email"
@@ -176,13 +391,28 @@ const Login = () => {
                 onChange={handleChange}
                 placeholder="Введите ваш email"
                 required
-                style={{ paddingLeft: '40px' }}
+                autoComplete="email"
+                autoFocus={!formData.email}
+                style={{ 
+                  paddingLeft: '40px',
+                  width: '100%',
+                  padding: '12px 12px 12px 40px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  display: 'block',
+                  visibility: 'visible',
+                  opacity: 1,
+                  height: 'auto',
+                  minHeight: '44px'
+                }}
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Пароль</label>
+          <div className="form-group" style={{ display: 'block', width: '100%' }}>
+            <label htmlFor="password" style={{ display: 'block', marginBottom: '8px', color: '#333', fontWeight: '500' }}>Пароль</label>
             <div style={{ position: 'relative' }}>
               <FaLock style={{
                 position: 'absolute',
@@ -199,7 +429,17 @@ const Login = () => {
                 onChange={handleChange}
                 placeholder="Введите ваш пароль"
                 required
-                style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                style={{ 
+                  paddingLeft: '40px', 
+                  paddingRight: '40px',
+                  width: '100%',
+                  padding: '12px 40px 12px 40px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  display: 'block'
+                }}
               />
               <button
                 type="button"
@@ -293,6 +533,97 @@ const Login = () => {
               🧪 ОТЛАДКА
             </button>
             
+            {/* Кнопка создания/восстановления пользователя Юлия */}
+            <button
+              onClick={() => {
+                // Создаем/восстанавливаем пользователя Юлия
+                const userData = {
+                  id: Date.now(),
+                  name: 'Юлия Настродамовна',
+                  email: 'yuliajulieyulia@gmail.com',
+                  phone: '',
+                  password: 'yuliajulieyulia',
+                  role: 'astrologer',
+                  profileImage: null
+                }
+                
+                // Сохраняем в массив всех пользователей
+                const savedUsers = localStorage.getItem('users')
+                let users = []
+                if (savedUsers) {
+                  try {
+                    users = JSON.parse(savedUsers)
+                  } catch (e) {
+                    console.error('Ошибка парсинга:', e)
+                  }
+                }
+                
+                // Удаляем старую версию если есть
+                users = users.filter(u => u.email !== userData.email)
+                // Добавляем новую
+                users.push(userData)
+                localStorage.setItem('users', JSON.stringify(users))
+                
+                // Также сохраняем как текущего пользователя
+                localStorage.setItem('user', JSON.stringify(userData))
+                
+                // Добавляем в специалисты если еще нет
+                const savedSpecialists = localStorage.getItem('specialists')
+                let specialists = []
+                if (savedSpecialists) {
+                  try {
+                    specialists = JSON.parse(savedSpecialists)
+                  } catch (e) {
+                    console.error('Ошибка парсинга специалистов:', e)
+                  }
+                }
+                
+                const existingSpecIndex = specialists.findIndex(s => s.email === userData.email)
+                if (existingSpecIndex >= 0) {
+                  specialists[existingSpecIndex] = {
+                    ...specialists[existingSpecIndex],
+                    ...userData,
+                    specialty: 'Астролог',
+                    rating: 0,
+                    reviews: 0,
+                    price: 2000,
+                    password: userData.password
+                  }
+                } else {
+                  specialists.push({
+                    ...userData,
+                    specialty: 'Астролог',
+                    rating: 0,
+                    reviews: 0,
+                    price: 2000,
+                    password: userData.password
+                  })
+                }
+                localStorage.setItem('specialists', JSON.stringify(specialists))
+                
+                console.log('✅ Пользователь Юлия создан/восстановлен!')
+                alert('Пользователь Юлия создан/восстановлен! Теперь можно войти с:\nEmail: yuliajulieyulia@gmail.com\nПароль: yuliajulieyulia')
+                
+                // Заполняем форму
+                setFormData({
+                  email: userData.email,
+                  password: userData.password
+                })
+              }}
+              style={{
+                background: '#27ae60',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginLeft: '10px'
+              }}
+            >
+              ✅ СОЗДАТЬ ЮЛИЮ
+            </button>
+            
             {/* Кнопка очистки данных Юлии */}
             <button
               onClick={() => {
@@ -300,17 +631,23 @@ const Login = () => {
                 const currentUser = localStorage.getItem('user')
                 if (currentUser) {
                   const user = JSON.parse(currentUser)
-                  if (user.name === 'Юлия' || user.email === 'yulia@test.com') {
+                  if (user.name === 'Юлия' || user.email === 'yuliajulieyulia@gmail.com') {
                     localStorage.removeItem('user')
                     console.log('Данные пользователя Юлия удалены из localStorage')
                     alert('Данные пользователя Юлия удалены! Обновите страницу.')
-                  } else {
-                    console.log('Пользователь Юлия не найден в localStorage')
-                    alert('Пользователь Юлия не найден в localStorage')
                   }
-                } else {
-                  console.log('localStorage пуст')
-                  alert('localStorage пуст')
+                }
+                
+                // Удаляем из массива users
+                const savedUsers = localStorage.getItem('users')
+                if (savedUsers) {
+                  try {
+                    const users = JSON.parse(savedUsers)
+                    const filtered = users.filter(u => u.email !== 'yuliajulieyulia@gmail.com')
+                    localStorage.setItem('users', JSON.stringify(filtered))
+                  } catch (e) {
+                    console.error('Ошибка:', e)
+                  }
                 }
                 
                 // Также очищаем данные о специалисте Юлия из списка специалистов
@@ -319,14 +656,12 @@ const Login = () => {
                   try {
                     const specialistsList = JSON.parse(specialists)
                     const filteredSpecialists = specialistsList.filter(s => 
-                      s.name !== 'Юлия' && s.email !== 'yulia@test.com'
+                      s.name !== 'Юлия' && s.email !== 'yuliajulieyulia@gmail.com'
                     )
                     if (filteredSpecialists.length !== specialistsList.length) {
                       localStorage.setItem('specialists', JSON.stringify(filteredSpecialists))
                       console.log('Специалист Юлия удален из списка специалистов')
-                      alert('Специалист Юлия удален из списка специалистов!')
-                    } else {
-                      console.log('Специалист Юлия не найден в списке специалистов')
+                      alert('Специалист Юлия удален!')
                     }
                   } catch (error) {
                     console.error('Ошибка при обработке списка специалистов:', error)
