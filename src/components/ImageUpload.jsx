@@ -16,16 +16,32 @@ const ImageUpload = ({
   const fileInputRef = useRef(null)
 
   // Ensure maxSize is a valid number (convert to number if needed, use default if invalid)
-  let validMaxSize = 20 * 1024 * 1024 // По умолчанию 20 MB
-  if (typeof maxSize === 'number' && !isNaN(maxSize) && maxSize > 0) {
-    validMaxSize = maxSize
-  } else if (typeof maxSize === 'string') {
-    const parsed = parseFloat(maxSize)
-    if (!isNaN(parsed) && parsed > 0) {
-      validMaxSize = parsed
+  let validMaxSize = 20 * 1024 * 1024 // По умолчанию 20 MB (20,971,520 байт)
+  
+  if (maxSize !== undefined && maxSize !== null) {
+    if (typeof maxSize === 'number' && !isNaN(maxSize) && isFinite(maxSize) && maxSize > 0) {
+      validMaxSize = maxSize
+      console.log('ImageUpload: maxSize из пропсов (число):', maxSize, 'байт =', (maxSize / 1024 / 1024).toFixed(2), 'MB')
+    } else if (typeof maxSize === 'string') {
+      const parsed = parseFloat(maxSize)
+      if (!isNaN(parsed) && isFinite(parsed) && parsed > 0) {
+        validMaxSize = parsed
+        console.log('ImageUpload: maxSize из пропсов (строка):', maxSize, '->', parsed, 'байт =', (parsed / 1024 / 1024).toFixed(2), 'MB')
+      } else {
+        console.warn('ImageUpload: maxSize строка не валидна:', maxSize, 'используем 20 MB')
+      }
+    } else {
+      console.warn('ImageUpload: maxSize имеет неожиданный тип:', typeof maxSize, 'значение:', maxSize, 'используем 20 MB')
     }
   }
-  console.log('ImageUpload: Инициализация - maxSize prop:', maxSize, 'validMaxSize:', validMaxSize, 'MB:', (validMaxSize / 1024 / 1024).toFixed(2))
+  
+  // Финальная проверка валидности
+  if (!validMaxSize || validMaxSize <= 0 || isNaN(validMaxSize) || !isFinite(validMaxSize)) {
+    console.error('ImageUpload: КРИТИЧЕСКАЯ ОШИБКА - validMaxSize невалиден:', validMaxSize, 'устанавливаем 20 MB')
+    validMaxSize = 20 * 1024 * 1024
+  }
+  
+  console.log('ImageUpload: Инициализация - validMaxSize финальный:', validMaxSize, 'байт =', (validMaxSize / 1024 / 1024).toFixed(2), 'MB')
 
   const isSingleMode = single || typeof onImageChange === 'function'
   
@@ -171,22 +187,38 @@ const ImageUpload = ({
 
   // Helper function to format maxSize for display
   const formatMaxSize = (sizeInBytes) => {
-    let size = validMaxSize // По умолчанию используем validMaxSize
-    if (typeof sizeInBytes === 'number' && !isNaN(sizeInBytes) && sizeInBytes > 0) {
-      size = sizeInBytes
+    // Используем validMaxSize как базовое значение (уже проверенное при инициализации)
+    let size = validMaxSize
+    
+    // Если передан параметр, используем его (но проверяем валидность)
+    if (sizeInBytes !== undefined && sizeInBytes !== null) {
+      if (typeof sizeInBytes === 'number' && !isNaN(sizeInBytes) && isFinite(sizeInBytes) && sizeInBytes > 0) {
+        size = sizeInBytes
+      } else if (typeof sizeInBytes === 'string') {
+        const parsed = parseFloat(sizeInBytes)
+        if (!isNaN(parsed) && isFinite(parsed) && parsed > 0) {
+          size = parsed
+        }
+      }
     }
     
-    // Защита от некорректных значений
-    if (size <= 0 || isNaN(size) || !isFinite(size)) {
-      size = 20 * 1024 * 1024 // Фолбэк на 20 MB
+    // Финальная проверка на валидность значения (но не проверяем size < 1024, так как это нормально для маленьких лимитов)
+    if (!size || size <= 0 || isNaN(size) || !isFinite(size)) {
+      console.warn('ImageUpload: formatMaxSize получил невалидное значение:', sizeInBytes, 'используем validMaxSize:', validMaxSize)
+      size = validMaxSize // Используем уже проверенный validMaxSize
     }
     
+    // Форматируем размер для отображения
     if (size < 1024) {
       return Math.round(size) + ' байт'
     } else if (size < 1024 * 1024) {
       return Math.round(size / 1024) + ' KB'
     } else {
-      return (size / 1024 / 1024).toFixed(2) + ' MB'
+      const mb = size / 1024 / 1024
+      // Округляем до 2 знаков, но убираем лишние нули
+      const mbFormatted = parseFloat(mb.toFixed(2))
+      console.log('ImageUpload: formatMaxSize -> размер:', size, 'байт =', mbFormatted, 'MB')
+      return mbFormatted + ' MB'
     }
   }
 
