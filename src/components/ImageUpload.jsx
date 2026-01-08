@@ -50,6 +50,52 @@ const ImageUpload = ({
     ? (currentImage ? [{ id: 'single', preview: currentImage, name: 'image', size: 0 }] : [])
     : images
 
+  // Helper функции должны быть определены ДО их использования
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0 || isNaN(bytes)) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // Helper function to format maxSize for display
+  const formatMaxSize = (sizeInBytes) => {
+    // Используем validMaxSize как базовое значение (уже проверенное при инициализации)
+    let size = validMaxSize
+    
+    // Если передан параметр, используем его (но проверяем валидность)
+    if (sizeInBytes !== undefined && sizeInBytes !== null) {
+      if (typeof sizeInBytes === 'number' && !isNaN(sizeInBytes) && isFinite(sizeInBytes) && sizeInBytes > 0) {
+        size = sizeInBytes
+      } else if (typeof sizeInBytes === 'string') {
+        const parsed = parseFloat(sizeInBytes)
+        if (!isNaN(parsed) && isFinite(parsed) && parsed > 0) {
+          size = parsed
+        }
+      }
+    }
+    
+    // Финальная проверка на валидность значения (но не проверяем size < 1024, так как это нормально для маленьких лимитов)
+    if (!size || size <= 0 || isNaN(size) || !isFinite(size)) {
+      console.warn('ImageUpload: formatMaxSize получил невалидное значение:', sizeInBytes, 'используем validMaxSize:', validMaxSize)
+      size = validMaxSize // Используем уже проверенный validMaxSize
+    }
+    
+    // Форматируем размер для отображения
+    if (size < 1024) {
+      return Math.round(size) + ' байт'
+    } else if (size < 1024 * 1024) {
+      return Math.round(size / 1024) + ' KB'
+    } else {
+      const mb = size / 1024 / 1024
+      // Округляем до 2 знаков, но убираем лишние нули
+      const mbFormatted = parseFloat(mb.toFixed(2))
+      console.log('ImageUpload: formatMaxSize -> размер:', size, 'байт =', mbFormatted, 'MB')
+      return mbFormatted + ' MB'
+    }
+  }
+
   const handleFileSelect = (files) => {
     console.log('ImageUpload: maxSize prop =', maxSize, 'validMaxSize =', validMaxSize, 'bytes =', (validMaxSize / 1024 / 1024).toFixed(2), 'MB')
     const fileArray = Array.from(files)
@@ -174,51 +220,6 @@ const ImageUpload = ({
       }
     } else if (onImagesChange) {
       onImagesChange(images.filter(img => img.id !== imageId))
-    }
-  }
-
-  const formatFileSize = (bytes) => {
-    if (!bytes || bytes === 0 || isNaN(bytes)) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
-
-  // Helper function to format maxSize for display
-  const formatMaxSize = (sizeInBytes) => {
-    // Используем validMaxSize как базовое значение (уже проверенное при инициализации)
-    let size = validMaxSize
-    
-    // Если передан параметр, используем его (но проверяем валидность)
-    if (sizeInBytes !== undefined && sizeInBytes !== null) {
-      if (typeof sizeInBytes === 'number' && !isNaN(sizeInBytes) && isFinite(sizeInBytes) && sizeInBytes > 0) {
-        size = sizeInBytes
-      } else if (typeof sizeInBytes === 'string') {
-        const parsed = parseFloat(sizeInBytes)
-        if (!isNaN(parsed) && isFinite(parsed) && parsed > 0) {
-          size = parsed
-        }
-      }
-    }
-    
-    // Финальная проверка на валидность значения (но не проверяем size < 1024, так как это нормально для маленьких лимитов)
-    if (!size || size <= 0 || isNaN(size) || !isFinite(size)) {
-      console.warn('ImageUpload: formatMaxSize получил невалидное значение:', sizeInBytes, 'используем validMaxSize:', validMaxSize)
-      size = validMaxSize // Используем уже проверенный validMaxSize
-    }
-    
-    // Форматируем размер для отображения
-    if (size < 1024) {
-      return Math.round(size) + ' байт'
-    } else if (size < 1024 * 1024) {
-      return Math.round(size / 1024) + ' KB'
-    } else {
-      const mb = size / 1024 / 1024
-      // Округляем до 2 знаков, но убираем лишние нули
-      const mbFormatted = parseFloat(mb.toFixed(2))
-      console.log('ImageUpload: formatMaxSize -> размер:', size, 'байт =', mbFormatted, 'MB')
-      return mbFormatted + ' MB'
     }
   }
 
