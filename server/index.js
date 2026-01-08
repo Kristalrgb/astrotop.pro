@@ -44,6 +44,7 @@ const corsOptions = {
       callback(null, true)
     } else {
       // В продакшене разрешаем все для избежания проблем с CORS
+      console.log('CORS: Разрешаем origin:', origin)
       callback(null, true)
     }
   },
@@ -487,17 +488,33 @@ io.on('connection', (socket) => {
 // Middleware для установки CORS заголовков на все API запросы
 app.use('/api/*', (req, res, next) => {
   const origin = req.headers.origin
-  if (origin && (origin.includes('astrotop.pro') || origin.includes('.vercel.app') || origin.includes('localhost'))) {
+  
+  // Разрешаем все известные домены
+  if (origin && (
+    origin.includes('astrotop.pro') || 
+    origin.includes('.vercel.app') || 
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1')
+  )) {
     res.header('Access-Control-Allow-Origin', origin)
-  } else {
+  } else if (!origin) {
+    // Для запросов без origin
     res.header('Access-Control-Allow-Origin', '*')
+  } else {
+    // Разрешаем все остальные для избежания проблем с CORS
+    res.header('Access-Control-Allow-Origin', origin)
   }
+  
   res.header('Access-Control-Allow-Credentials', 'true')
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type')
+  
+  // Обработка preflight запросов
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200)
   }
+  
   next()
 })
 

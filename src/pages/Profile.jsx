@@ -25,19 +25,31 @@ const Profile = () => {
     if (user) {
       console.log('Profile: useEffect - обновление данных из user')
       console.log('user.profileImage существует?', !!user.profileImage)
+      console.log('user.profileImage длина:', user.profileImage?.length || 0)
+      
       setFormData({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || ''
       })
-      // Обновляем фото только если оно изменилось
-      if (user.profileImage !== profileImage) {
-        setProfileImage(user.profileImage || null)
-        console.log('Profile: profileImage обновлен из user, длина:', user.profileImage?.length || 0)
-      }
+      
+      // ВСЕГДА обновляем фото из user, чтобы синхронизировать после сохранения
+      const newProfileImage = user.profileImage || null
+      setProfileImage(newProfileImage)
+      console.log('✅ Profile: profileImage обновлен из user, длина:', newProfileImage?.length || 0)
+    } else {
+      // Если user null, сбрасываем все
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        role: ''
+      })
+      setProfileImage(null)
     }
-  }, [user, user?.profileImage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.profileImage]) // Используем user.id и user.profileImage как зависимости для оптимизации
 
   const handleChange = (e) => {
     setFormData({
@@ -50,37 +62,58 @@ const Profile = () => {
     console.log('=== ЗАГРУЗКА ФОТО ===')
     console.log('Profile: handleImageChange вызван')
     console.log('preview существует?', !!preview)
-    console.log('preview длина:', preview?.length)
-    console.log('preview начало:', preview?.substring(0, 100) + '...')
-    console.log('imageData:', imageData)
+    console.log('preview тип:', typeof preview)
     
     try {
-      if (preview && typeof preview === 'string') {
-        // Проверяем, что это действительно base64 изображение
-        if (preview.startsWith('data:image/')) {
-          setProfileImage(preview)
-          setMessage('✅ Фото успешно загружено! Теперь нажмите "Сохранить изменения" для сохранения.')
-          setTimeout(() => setMessage(''), 5000)
-          console.log('✅ Profile: profileImage установлен, длина base64:', preview.length, 'символов')
-          console.log('✅ Тип изображения:', preview.substring(5, preview.indexOf(';')))
-        } else {
-          console.error('❌ Ошибка: preview не является валидным base64 изображением')
-          setMessage('❌ Ошибка: неверный формат изображения')
-          setTimeout(() => setMessage(''), 3000)
-        }
-      } else if (preview === null) {
+      // Обработка удаления фото
+      if (preview === null || preview === undefined) {
         setProfileImage(null)
         setMessage('Фото удалено')
         setTimeout(() => setMessage(''), 2000)
-        console.log('Profile: profileImage сброшен')
-      } else {
-        console.error('❌ Ошибка: preview имеет неверный тип:', typeof preview)
-        setMessage('❌ Ошибка при загрузке фото')
-        setTimeout(() => setMessage(''), 3000)
+        console.log('✅ Profile: profileImage сброшен (удалено)')
+        return
       }
+      
+      // Проверка, что preview - это строка
+      if (typeof preview !== 'string') {
+        console.error('❌ Ошибка: preview не является строкой, тип:', typeof preview)
+        setMessage('❌ Ошибка: неверный формат данных')
+        setTimeout(() => setMessage(''), 3000)
+        return
+      }
+      
+      // Проверка формата base64 изображения
+      if (!preview.startsWith('data:image/')) {
+        console.error('❌ Ошибка: preview не является валидным base64 изображением')
+        console.error('preview начало:', preview.substring(0, 50))
+        setMessage('❌ Ошибка: неверный формат изображения. Ожидается base64.')
+        setTimeout(() => setMessage(''), 3000)
+        return
+      }
+      
+      // Проверка длины (минимальная длина для валидного base64 изображения)
+      if (preview.length < 100) {
+        console.error('❌ Ошибка: preview слишком короткий, длина:', preview.length)
+        setMessage('❌ Ошибка: файл поврежден или слишком мал')
+        setTimeout(() => setMessage(''), 3000)
+        return
+      }
+      
+      // Все проверки пройдены - устанавливаем фото
+      setProfileImage(preview)
+      const imageType = preview.substring(5, preview.indexOf(';'))
+      setMessage('✅ Фото успешно загружено! Теперь нажмите "Сохранить изменения" для сохранения.')
+      setTimeout(() => setMessage(''), 5000)
+      
+      console.log('✅ Profile: profileImage установлен успешно')
+      console.log('✅ Длина base64:', preview.length, 'символов')
+      console.log('✅ Тип изображения:', imageType)
+      console.log('✅ Preview начало:', preview.substring(0, 50) + '...')
+      
     } catch (error) {
-      console.error('❌ Ошибка в handleImageChange:', error)
-      setMessage('❌ Ошибка при обработке фото: ' + error.message)
+      console.error('❌ Критическая ошибка в handleImageChange:', error)
+      console.error('Стек ошибки:', error.stack)
+      setMessage('❌ Критическая ошибка при обработке фото: ' + (error.message || 'Неизвестная ошибка'))
       setTimeout(() => setMessage(''), 5000)
     }
   }
@@ -245,13 +278,45 @@ const Profile = () => {
         console.log('Пользователь - клиент, обновление специалиста не требуется')
       }
       
+      // Принудительно обновляем локальное состояние profileImage
+      // Это гарантирует, что фото отобразится сразу после сохранения
+      if (updatedUser.profileImage && typeof updatedUser.profileImage === 'string') {
+        setProfileImage(updatedUser.profileImage)
+        console.log('✅ Локальное состояние profileImage обновлено принудительно, длина:', updatedUser.profileImage.length)
+      } else {
+        setProfileImage(null)
+        console.log('ℹ️ profileImage удален или не установлен')
+      }
+      
+      // Важно: setIsEditing(false) ПОСЛЕ обновления, чтобы useEffect перезагрузил данные
       setIsEditing(false)
-      setMessage('Профиль успешно обновлен!')
+      
+      // Небольшая задержка перед сообщением, чтобы дать время обновиться состоянию
+      setTimeout(() => {
+        setMessage('✅ Профиль успешно обновлен!')
+        
+        // Проверяем, что фото сохранилось
+        try {
+          const finalCheck = localStorage.getItem('user')
+          if (finalCheck) {
+            const finalUser = JSON.parse(finalCheck)
+            if (finalUser.profileImage && typeof finalUser.profileImage === 'string') {
+              console.log('✅ ФИНАЛЬНАЯ ПРОВЕРКА: фото сохранено в localStorage')
+              console.log('   Длина base64:', finalUser.profileImage.length, 'символов')
+              console.log('   Тип:', finalUser.profileImage.substring(5, finalUser.profileImage.indexOf(';')))
+            } else {
+              console.log('⚠️ ФИНАЛЬНАЯ ПРОВЕРКА: фото НЕ найдено в localStorage')
+            }
+          }
+        } catch (err) {
+          console.error('❌ Ошибка при финальной проверке:', err)
+        }
+      }, 100)
       
       console.log('Профиль успешно обновлен!')
       
-      // Очищаем сообщение через 3 секунды
-      setTimeout(() => setMessage(''), 3000)
+      // Очищаем сообщение через 5 секунд
+      setTimeout(() => setMessage(''), 5000)
       
     } catch (error) {
       console.log('Ошибка при сохранении:', error)

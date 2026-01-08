@@ -71,16 +71,25 @@ const ImageUpload = ({
     
     // Конвертируем файлы в base64
     const promises = validFiles.map(file => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = (e) => {
-          resolve({
-            id: Date.now() + Math.random(),
-            file: file,
-            preview: e.target.result,
-            name: file.name,
-            size: file.size
-          })
+          const result = e.target.result
+          if (result && typeof result === 'string' && result.startsWith('data:image/')) {
+            resolve({
+              id: Date.now() + Math.random(),
+              file: file,
+              preview: result,
+              name: file.name,
+              size: file.size
+            })
+          } else {
+            reject(new Error('Не удалось конвертировать файл в base64'))
+          }
+        }
+        reader.onerror = (error) => {
+          console.error('ImageUpload: Ошибка чтения файла:', error)
+          reject(new Error('Ошибка при чтении файла'))
         }
         reader.readAsDataURL(file)
       })
@@ -112,8 +121,9 @@ const ImageUpload = ({
       }
       setUploading(false)
     }).catch((error) => {
-      console.error('ImageUpload: Ошибка при обработке изображений:', error)
+      console.error('❌ ImageUpload: Ошибка при обработке изображений:', error)
       setUploading(false)
+      alert('Ошибка при загрузке изображения: ' + (error.message || 'Неизвестная ошибка'))
     })
   }
 

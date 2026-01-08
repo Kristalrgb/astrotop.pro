@@ -34,8 +34,16 @@ export const AuthProvider = ({ children }) => {
   }
 
   const updateUser = (userData) => {
-    setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))
+    console.log('AuthContext: updateUser вызван')
+    console.log('userData.profileImage существует?', !!userData.profileImage)
+    console.log('userData.profileImage длина:', userData.profileImage?.length || 0)
+    
+    // Создаем новый объект, чтобы React увидел изменение
+    const newUser = { ...userData }
+    setUser(newUser)
+    localStorage.setItem('user', JSON.stringify(newUser))
+    
+    console.log('AuthContext: user обновлен, profileImage сохранен в localStorage')
   }
 
   // Функция для удаления пользователя
