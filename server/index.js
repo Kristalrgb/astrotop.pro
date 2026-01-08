@@ -750,10 +750,31 @@ app.post('/api/bookings/:id/send-reminder', async (req, res) => {
   }
 })
 
-// Обработка всех остальных маршрутов для SPA
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'))
+// Обработка корневого пути
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend API работает',
+    timestamp: new Date().toISOString(),
+    port: PORT
+  })
 })
+
+// Обработка всех остальных маршрутов для SPA (только для локальной разработки)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('*', (req, res) => {
+    const distPath = path.join(__dirname, '../dist/index.html')
+    if (fs.existsSync(distPath)) {
+      res.sendFile(distPath)
+    } else {
+      res.json({ 
+        status: 'ok', 
+        message: 'Backend API работает (dist не найден)',
+        path: req.path
+      })
+    }
+  })
+}
 
 const PORT = process.env.PORT || 5000
 
