@@ -14,12 +14,19 @@ export const useNews = () => {
 }
 
 const handleResponse = async (response, fallbackMessage) => {
+  // Если ответ не OK, проверяем статус
+  if (!response.ok) {
+    // Для 404 и 500 ошибок - это означает, что бэкенд недоступен или неправильно настроен
+    if (response.status === 404 || response.status >= 500) {
+      throw new Error('Сервер недоступен. Используются сохраненные новости.')
+    }
+  }
+  
   // Проверяем, что ответ JSON, а не HTML
   const contentType = response.headers.get('content-type')
   if (!contentType || !contentType.includes('application/json')) {
     // Если сервер вернул HTML (например, 404 страницу), значит бэкенд недоступен
-    // Не пытаемся парсить как JSON
-    throw new Error('Сервер недоступен. Проверьте, что бэкенд запущен и правильно настроен.')
+    throw new Error('Сервер недоступен. Используются сохраненные новости.')
   }
   
   if (response.ok) {
@@ -27,14 +34,14 @@ const handleResponse = async (response, fallbackMessage) => {
       const text = await response.text()
       // Проверяем, что это действительно JSON, а не HTML
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<!doctype')) {
-        throw new Error('Сервер вернул HTML вместо JSON. Бэкенд недоступен.')
+        throw new Error('Сервер недоступен. Используются сохраненные новости.')
       }
       return JSON.parse(text)
     } catch (error) {
-      if (error.message.includes('HTML')) {
+      if (error.message.includes('HTML') || error.message.includes('Сервер недоступен')) {
         throw error
       }
-      throw new Error('Неверный формат ответа от сервера')
+      throw new Error('Сервер недоступен. Используются сохраненные новости.')
     }
   }
   
@@ -86,10 +93,10 @@ export const NewsProvider = ({ children }) => {
           const parsed = JSON.parse(backup)
           const newsArray = Array.isArray(parsed) ? parsed : []
           setPosts(newsArray)
-          setError('Бэкенд не настроен. Используются сохраненные новости.')
+          setError(null) // Не показываем ошибку, если есть локальные данные
         } catch (e) {
           console.error('Ошибка загрузки из localStorage:', e)
-          setError('Бэкенд не настроен. Добавьте VITE_API_URL в настройках Vercel.')
+          setError(null) // Не показываем ошибку - приложение работает без бэкенда
         }
       } else {
         setError('Бэкенд не настроен. Добавьте VITE_API_URL в настройках Vercel.')
@@ -99,7 +106,34 @@ export const NewsProvider = ({ children }) => {
 
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/news`)
+      // Если API не настроен, используем только localStorage
+      if (!API_BASE_URL || API_BASE_URL.trim() === '') {
+        throw new Error('API не настроен')
+      }
+
+      console.log('Запрос к API:', `${API_BASE_URL}/api/news`)
+      
+      // Используем более надежный способ загрузки с обработкой ошибок
+      let response
+      try {
+        response = await fetch(`${API_BASE_URL}/api/news`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
+          mode: 'cors',
+          cache: 'no-cache'
+        })
+        
+        console.log('Ответ от сервера:', response.status, response.statusText)
+      } catch (fetchError) {
+        // Если fetch вообще не выполнился (сетевые ошибки, CORS и т.д.)
+        console.warn('Не удалось выполнить запрос к API (возможно, бэкенд недоступен):', fetchError.message)
+        throw new Error('Сервер недоступен. Используются сохраненные новости.')
+      }
+      
       const data = await handleResponse(response, 'Не удалось загрузить новости')
       setPosts(Array.isArray(data) ? data : [])
       setError(null)
@@ -109,7 +143,8 @@ export const NewsProvider = ({ children }) => {
         localStorage.setItem('news_backup', JSON.stringify(data))
       }
     } catch (err) {
-      console.error('Ошибка загрузки новостей:', err)
+      // Тихая обработка ошибок - не показываем пользователю, если есть локальные данные
+      console.warn('Ошибка загрузки новостей с сервера (используем локальные данные):', err.message)
       
       // Пытаемся загрузить из localStorage
       if (typeof window !== 'undefined') {
@@ -118,21 +153,22 @@ export const NewsProvider = ({ children }) => {
           if (backup) {
             const parsed = JSON.parse(backup)
             const newsArray = Array.isArray(parsed) ? parsed : []
-            setPosts(newsArray)
-            setError('Используются сохраненные новости. Сервер недоступен.')
-            return
+            if (newsArray.length > 0) {
+              setPosts(newsArray)
+              // Не показываем ошибку пользователю, если есть локальные данные
+              setError(null)
+              console.log('Используются сохраненные новости из localStorage')
+              return
+            }
           }
         } catch (e) {
           console.error('Ошибка загрузки из localStorage:', e)
         }
       }
       
-      // Если нет данных в localStorage, показываем ошибку, но не очищаем существующие посты
-      if (posts.length === 0) {
-        setError(err.message || 'Не удалось загрузить новости. Убедитесь, что сервер запущен.')
-      } else {
-        setError('Сервер недоступен. Используются сохраненные новости.')
-      }
+      // Не показываем ошибку пользователю - приложение работает с локальными данными
+      // Ошибки в консоли - это нормально, если бэкенд недоступен
+      setError(null)
     } finally {
       setLoading(false)
     }
@@ -213,6 +249,7 @@ export const NewsProvider = ({ children }) => {
     const response = await fetch(`${API_BASE_URL}/api/news/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(payload)
     })
     const updatedPost = await handleResponse(response, 'Не удалось обновить публикацию')
@@ -279,7 +316,8 @@ export const NewsProvider = ({ children }) => {
 
     try {
     const response = await fetch(`${API_BASE_URL}/api/news/${id}?authorId=${authorId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     })
     await handleResponse(response, 'Не удалось удалить публикацию')
       setPosts(prev => {
@@ -334,6 +372,7 @@ export const NewsProvider = ({ children }) => {
             const response = await fetch(`${API_BASE_URL}/api/news/${serverId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify(postData)
             })
             const updatedPost = await handleResponse(response, 'Не удалось синхронизировать публикацию')
@@ -350,6 +389,7 @@ export const NewsProvider = ({ children }) => {
               const response = await fetch(`${API_BASE_URL}/api/news`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(postData)
               })
               const newPost = await handleResponse(response, 'Не удалось синхронизировать публикацию')
@@ -368,6 +408,7 @@ export const NewsProvider = ({ children }) => {
           const response = await fetch(`${API_BASE_URL}/api/news`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(postData)
           })
           const newPost = await handleResponse(response, 'Не удалось синхронизировать публикацию')

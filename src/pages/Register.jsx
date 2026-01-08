@@ -97,6 +97,36 @@ const Register = () => {
       
       console.log('Данные пользователя:', userData)
       
+      // Сохраняем пользователя в массив всех пользователей
+      const savedUsers = localStorage.getItem('users')
+      let users = []
+      if (savedUsers) {
+        try {
+          users = JSON.parse(savedUsers)
+        } catch (error) {
+          console.error('Ошибка парсинга массива пользователей:', error)
+        }
+      }
+      
+      // Проверяем, нет ли уже пользователя с таким email
+      const existingUserIndex = users.findIndex(u => 
+        u.email && u.email.toLowerCase().trim() === userData.email
+      )
+      
+      if (existingUserIndex >= 0) {
+        // Обновляем существующего пользователя
+        users[existingUserIndex] = userData
+        console.log('Обновлен существующий пользователь')
+      } else {
+        // Добавляем нового пользователя
+        users.push(userData)
+        console.log('Добавлен новый пользователь')
+      }
+      
+      // Сохраняем массив всех пользователей
+      localStorage.setItem('users', JSON.stringify(users))
+      console.log('Все пользователи сохранены в localStorage:', users.length)
+      
       // Автоматически входим после регистрации
       login(userData)
       console.log('Пользователь залогинен')
@@ -326,7 +356,8 @@ const Register = () => {
             <ImageUpload
               currentImage={profileImage}
               onImageChange={handleImageChange}
-              maxSize={5 * 1024 * 1024}
+              maxSize={20 * 1024 * 1024}
+              single={true}
             />
           </div>
 

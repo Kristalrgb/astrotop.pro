@@ -12,34 +12,103 @@ const server = http.createServer(app)
 const allowedOrigins = [
   'http://localhost:3000',
   'https://astrotoppro.vercel.app',
+  'https://astrotop-pro.vercel.app',
   'https://astrotop.pro',
+  'http://astrotop.pro',
   process.env.FRONTEND_URL
 ].filter(Boolean)
 
-const io = socketIo(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-})
-
-// Middleware
-app.use(cors({
+// Добавляем поддержку всех поддоменов vercel.app и railway.app для разработки
+const corsOptions = {
   origin: function (origin, callback) {
     // Разрешаем запросы без origin (например, от мобильных приложений или Postman)
     if (!origin) return callback(null, true)
     
+    // Разрешаем все локальные запросы
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true)
+    }
+    
+    // Разрешаем все vercel.app домены
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true)
+    }
+    
+    // Разрешаем astrotop.pro
+    if (origin.includes('astrotop.pro')) {
+      return callback(null, true)
+    }
+    
+    // Проверяем список разрешенных источников
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true)
     } else {
-      callback(null, true) // Временно разрешаем все для тестирования
-      // В продакшене можно ужесточить:
-      // callback(new Error('Not allowed by CORS'))
+      // В продакшене разрешаем все для избежания проблем с CORS
+      callback(null, true)
     }
   },
-  credentials: true
-}))
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}
+
+const io = socketIo(server, {
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true)
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true)
+      }
+      if (origin.includes('.vercel.app') || origin.includes('astrotop.pro')) {
+        return callback(null, true)
+      }
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true)
+      }
+      callback(null, true) // Разрешаем все для избежания проблем
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true
+  }
+})
+
+// Middleware - CORS должен быть ПЕРВЫМ
+app.use(cors(corsOptions))
+
+// Добавляем обработку OPTIONS запросов для CORS preflight (до всех маршрутов)
+app.options('*', cors(corsOptions))
+
+// Универсальный middleware для CORS заголовков на все запросы
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  // Разрешаем все известные домены
+  if (origin && (
+    origin.includes('astrotop.pro') || 
+    origin.includes('.vercel.app') || 
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1')
+  )) {
+    res.header('Access-Control-Allow-Origin', origin)
+  } else if (!origin) {
+    // Для запросов без origin (например, Postman)
+    res.header('Access-Control-Allow-Origin', '*')
+  } else {
+    // Разрешаем все остальные для избежания проблем
+    res.header('Access-Control-Allow-Origin', origin)
+  }
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type')
+  
+  // Обработка preflight запросов
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200)
+  }
+  
+  next()
+})
+
 app.use(express.json())
 app.use(express.static(path.join(__dirname, '../dist')))
 
@@ -415,11 +484,46 @@ io.on('connection', (socket) => {
   })
 })
 
+// Middleware для установки CORS заголовков на все API запросы
+app.use('/api/*', (req, res, next) => {
+  const origin = req.headers.origin
+  if (origin && (origin.includes('astrotop.pro') || origin.includes('.vercel.app') || origin.includes('localhost'))) {
+    res.header('Access-Control-Allow-Origin', origin)
+  } else {
+    res.header('Access-Control-Allow-Origin', '*')
+  }
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200)
+  }
+  next()
+})
+
+// Тестовый endpoint для проверки работы API
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'API работает',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin
+  })
+})
+
 // API маршруты
 app.get('/api/news', (req, res) => {
-  const news = readNews()
-  const sorted = news.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  res.json(sorted)
+  try {
+    console.log('GET /api/news - запрос получен')
+    console.log('Origin:', req.headers.origin)
+    const news = readNews()
+    const sorted = news.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    console.log(`Возвращаем ${sorted.length} новостей`)
+    res.json(sorted)
+  } catch (error) {
+    console.error('Ошибка получения новостей:', error)
+    res.status(500).json({ error: 'Ошибка сервера при получении новостей' })
+  }
 })
 
 app.get('/api/news/:id', (req, res) => {
@@ -432,34 +536,39 @@ app.get('/api/news/:id', (req, res) => {
 })
 
 app.post('/api/news', (req, res) => {
-  const { title, content, imageUrl, authorId, authorName, authorAvatar } = req.body
+  try {
+    const { title, content, imageUrl, authorId, authorName, authorAvatar } = req.body
 
-  if (!title?.trim() || !content?.trim()) {
-    return res.status(400).json({ error: 'Заполните заголовок и текст новости' })
+    if (!title?.trim() || !content?.trim()) {
+      return res.status(400).json({ error: 'Заполните заголовок и текст новости' })
+    }
+
+    if (!authorId || !authorName) {
+      return res.status(400).json({ error: 'Требуются данные автора' })
+    }
+
+    const news = readNews()
+    const timestamp = new Date().toISOString()
+    const newPost = {
+      id: generatePostId(),
+      title: title.trim(),
+      content: content.trim(),
+      imageUrl: imageUrl?.trim() || '',
+      authorId: String(authorId),
+      authorName: authorName.trim(),
+      authorAvatar: authorAvatar || '',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    }
+
+    news.push(newPost)
+    writeNews(news)
+
+    res.status(201).json(newPost)
+  } catch (error) {
+    console.error('Ошибка создания новости:', error)
+    res.status(500).json({ error: 'Ошибка сервера при создании новости' })
   }
-
-  if (!authorId || !authorName) {
-    return res.status(400).json({ error: 'Требуются данные автора' })
-  }
-
-  const news = readNews()
-  const timestamp = new Date().toISOString()
-  const newPost = {
-    id: generatePostId(),
-    title: title.trim(),
-    content: content.trim(),
-    imageUrl: imageUrl?.trim() || '',
-    authorId: String(authorId),
-    authorName: authorName.trim(),
-    authorAvatar: authorAvatar || '',
-    createdAt: timestamp,
-    updatedAt: timestamp
-  }
-
-  news.push(newPost)
-  writeNews(news)
-
-  res.status(201).json(newPost)
 })
 
 app.put('/api/news/:id', (req, res) => {

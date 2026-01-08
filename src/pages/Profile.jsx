@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSpecialists } from '../contexts/SpecialistsContext'
 import ImageUpload from '../components/ImageUpload'
-import { FaUser, FaEnvelope, FaPhone, FaSave, FaTimes, FaTrash } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaPhone, FaSave, FaTimes, FaTrash, FaLink } from 'react-icons/fa'
 
 const Profile = () => {
   const { t } = useLanguage()
@@ -23,15 +23,21 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('Profile: useEffect - обновление данных из user')
+      console.log('user.profileImage существует?', !!user.profileImage)
       setFormData({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || ''
       })
-      setProfileImage(user.profileImage || null)
+      // Обновляем фото только если оно изменилось
+      if (user.profileImage !== profileImage) {
+        setProfileImage(user.profileImage || null)
+        console.log('Profile: profileImage обновлен из user, длина:', user.profileImage?.length || 0)
+      }
     }
-  }, [user])
+  }, [user, user?.profileImage])
 
   const handleChange = (e) => {
     setFormData({
@@ -40,9 +46,124 @@ const Profile = () => {
     })
   }
 
-  const handleImageChange = (preview) => {
-    setProfileImage(preview)
+  const handleImageChange = (preview, imageData) => {
+    console.log('=== ЗАГРУЗКА ФОТО ===')
+    console.log('Profile: handleImageChange вызван')
+    console.log('preview существует?', !!preview)
+    console.log('preview длина:', preview?.length)
+    console.log('preview начало:', preview?.substring(0, 100) + '...')
+    console.log('imageData:', imageData)
+    
+    try {
+      if (preview && typeof preview === 'string') {
+        // Проверяем, что это действительно base64 изображение
+        if (preview.startsWith('data:image/')) {
+          setProfileImage(preview)
+          setMessage('✅ Фото успешно загружено! Теперь нажмите "Сохранить изменения" для сохранения.')
+          setTimeout(() => setMessage(''), 5000)
+          console.log('✅ Profile: profileImage установлен, длина base64:', preview.length, 'символов')
+          console.log('✅ Тип изображения:', preview.substring(5, preview.indexOf(';')))
+        } else {
+          console.error('❌ Ошибка: preview не является валидным base64 изображением')
+          setMessage('❌ Ошибка: неверный формат изображения')
+          setTimeout(() => setMessage(''), 3000)
+        }
+      } else if (preview === null) {
+        setProfileImage(null)
+        setMessage('Фото удалено')
+        setTimeout(() => setMessage(''), 2000)
+        console.log('Profile: profileImage сброшен')
+      } else {
+        console.error('❌ Ошибка: preview имеет неверный тип:', typeof preview)
+        setMessage('❌ Ошибка при загрузке фото')
+        setTimeout(() => setMessage(''), 3000)
+      }
+    } catch (error) {
+      console.error('❌ Ошибка в handleImageChange:', error)
+      setMessage('❌ Ошибка при обработке фото: ' + error.message)
+      setTimeout(() => setMessage(''), 5000)
+    }
   }
+
+  const handleLoadImageFromUrl = async () => {
+    const url = prompt('Введите URL изображения:')
+    if (!url) return
+
+    try {
+      setIsLoading(true)
+      setMessage('Загружаем изображение...')
+
+      // Загружаем изображение через прокси или напрямую
+      const response = await fetch(url, { mode: 'cors' })
+      if (!response.ok) throw new Error('Не удалось загрузить изображение')
+
+      const blob = await response.blob()
+      
+      // Проверяем тип файла
+      if (!blob.type.startsWith('image/')) {
+        throw new Error('URL не указывает на изображение')
+      }
+
+      // Проверяем размер (20 MB)
+      if (blob.size > 20 * 1024 * 1024) {
+        throw new Error(`Изображение слишком большое. Максимальный размер: 20 MB`)
+      }
+
+      // Конвертируем в base64
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setProfileImage(e.target.result)
+        setMessage('Изображение успешно загружено!')
+        setTimeout(() => setMessage(''), 3000)
+        setIsLoading(false)
+      }
+      reader.onerror = () => {
+        throw new Error('Ошибка при чтении изображения')
+      }
+      reader.readAsDataURL(blob)
+    } catch (error) {
+      console.error('Ошибка загрузки изображения:', error)
+      setMessage(`Ошибка: ${error.message}`)
+      setIsLoading(false)
+      setTimeout(() => setMessage(''), 5000)
+    }
+  }
+
+  // Обработка вставки из буфера обмена
+  useEffect(() => {
+    if (!isEditing) return
+
+    const handlePaste = async (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (item.type.indexOf('image') !== -1) {
+          e.preventDefault()
+          const blob = item.getAsFile()
+          
+          if (blob.size > 20 * 1024 * 1024) {
+            setMessage('Изображение слишком большое. Максимальный размер: 20 MB')
+            setTimeout(() => setMessage(''), 5000)
+            return
+          }
+
+          const reader = new FileReader()
+          reader.onload = (event) => {
+            setProfileImage(event.target.result)
+            setMessage('Изображение вставлено!')
+            setTimeout(() => setMessage(''), 3000)
+          }
+          reader.readAsDataURL(blob)
+          break
+        }
+      }
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [isEditing])
 
   const handleSave = async () => {
     if (!user) {
@@ -54,24 +175,66 @@ const Profile = () => {
     console.log('=== СОХРАНЕНИЕ ПРОФИЛЯ ===')
     console.log('Текущий пользователь:', user)
     console.log('Данные формы:', formData)
-    console.log('Изображение профиля:', profileImage)
+    console.log('profileImage существует?', !!profileImage)
+    console.log('profileImage длина:', profileImage?.length)
+    console.log('profileImage начало:', profileImage ? profileImage.substring(0, 100) + '...' : 'нет')
     
     setIsLoading(true)
-    setMessage('')
+    setMessage('Сохранение профиля...')
 
     try {
       // Обновляем данные пользователя
       const updatedUser = {
         ...user,
         ...formData,
-        profileImage: profileImage
+        profileImage: profileImage || null // Явно указываем null если нет фото
       }
       
-      console.log('Обновленные данные пользователя:', updatedUser)
+      console.log('Обновленные данные пользователя:', {
+        ...updatedUser,
+        profileImage: updatedUser.profileImage ? `${updatedUser.profileImage.substring(0, 50)}... (${updatedUser.profileImage.length} символов)` : 'нет'
+      })
+      console.log('profileImage в updatedUser:', updatedUser.profileImage ? `✅ ЕСТЬ (${updatedUser.profileImage.length} символов)` : '❌ НЕТ')
 
-      // Сначала обновляем пользователя
+      // Сначала обновляем пользователя в AuthContext
       updateUser(updatedUser)
-      console.log('Пользователь обновлен в AuthContext')
+      console.log('✅ Пользователь обновлен в AuthContext')
+      
+      // Проверяем, что фото действительно сохранилось
+      const savedUserCheck = localStorage.getItem('user')
+      if (savedUserCheck) {
+        const parsedUser = JSON.parse(savedUserCheck)
+        console.log('✅ Проверка сохранения - profileImage в localStorage:', parsedUser.profileImage ? `ЕСТЬ (${parsedUser.profileImage.length} символов)` : 'НЕТ')
+      }
+      
+      // Также обновляем пользователя в массиве users, если он там есть
+      try {
+        const savedUsers = localStorage.getItem('users')
+        if (savedUsers) {
+          let users = JSON.parse(savedUsers)
+          const userIndex = users.findIndex(u => u.id === user.id || (u.email && u.email.toLowerCase().trim() === user.email?.toLowerCase().trim()))
+          if (userIndex >= 0) {
+            users[userIndex] = { ...updatedUser } // Создаем новый объект
+            localStorage.setItem('users', JSON.stringify(users))
+            console.log('✅ Пользователь обновлен в массиве users, индекс:', userIndex)
+            
+            // Проверяем сохранение
+            const checkUsers = JSON.parse(localStorage.getItem('users'))
+            console.log('✅ Проверка массива users - profileImage:', checkUsers[userIndex].profileImage ? `ЕСТЬ (${checkUsers[userIndex].profileImage.length} символов)` : 'НЕТ')
+          } else {
+            console.log('⚠️ Пользователь не найден в массиве users, добавляем...')
+            users.push(updatedUser)
+            localStorage.setItem('users', JSON.stringify(users))
+            console.log('✅ Пользователь добавлен в массив users')
+          }
+        } else {
+          console.log('⚠️ Массив users не существует, создаем...')
+          localStorage.setItem('users', JSON.stringify([updatedUser]))
+          console.log('✅ Массив users создан с текущим пользователем')
+        }
+      } catch (error) {
+        console.error('❌ Ошибка обновления пользователя в массиве users:', error)
+      }
       
       // Если пользователь - астролог, обновляем его в списке специалистов
       if (updatedUser.role === 'astrologer') {
@@ -164,7 +327,7 @@ const Profile = () => {
       )}
 
       <div className="profile-section">
-        <h2 style={{ color: 'white' }}>{t('profile.personalInfo')}</h2>
+        <h2 style={{ color: '#333' }}>{t('profile.personalInfo')}</h2>
         
         {/* Аватар профиля */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -177,17 +340,43 @@ const Profile = () => {
           )}
           
           {isEditing && (
-            <ImageUpload
-              currentImage={profileImage}
-              onImageChange={handleImageChange}
-              maxSize={5}
-            />
+            <div style={{ marginTop: '20px' }}>
+              <ImageUpload
+                currentImage={profileImage}
+                onImageChange={handleImageChange}
+                maxSize={20 * 1024 * 1024}
+                single={true}
+              />
+              <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleLoadImageFromUrl}
+                  disabled={isLoading}
+                  style={{
+                    background: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: isLoading ? 0.6 : 1
+                  }}
+                >
+                  <FaLink />
+                  Загрузить по URL
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
         <div className="profile-form">
           <div className="form-group">
-            <label htmlFor="name" style={{ color: 'white' }}>{t('register.fullName')}</label>
+            <label htmlFor="name" style={{ color: '#333' }}>{t('register.fullName')}</label>
             <div style={{ position: 'relative' }}>
               <FaUser style={{
                 position: 'absolute',
@@ -203,13 +392,13 @@ const Profile = () => {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{ paddingLeft: '40px', color: 'white' }}
+                style={{ paddingLeft: '40px', color: '#333' }}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="email" style={{ color: 'white' }}>{t('register.email')}</label>
+            <label htmlFor="email" style={{ color: '#333' }}>{t('register.email')}</label>
             <div style={{ position: 'relative' }}>
               <FaEnvelope style={{
                 position: 'absolute',
@@ -225,13 +414,13 @@ const Profile = () => {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{ paddingLeft: '40px', color: 'white' }}
+                style={{ paddingLeft: '40px', color: '#333' }}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="phone" style={{ color: 'white' }}>{t('register.phone')}</label>
+            <label htmlFor="phone" style={{ color: '#333' }}>{t('register.phone')}</label>
             <div style={{ position: 'relative' }}>
               <FaPhone style={{
                 position: 'absolute',
@@ -247,19 +436,19 @@ const Profile = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 disabled={!isEditing}
-                style={{ paddingLeft: '40px', color: 'white' }}
+                style={{ paddingLeft: '40px', color: '#333' }}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>{t('register.accountType')}</label>
+            <label style={{ color: '#333' }}>{t('register.accountType')}</label>
             {isEditing ? (
               <select
                 name="role"
                 value={formData.role || user.role}
                 onChange={handleChange}
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '40px', color: '#333' }}
               >
                 <option value="client">{t('register.client')}</option>
                 <option value="astrologer">{t('register.astrologer')}</option>
@@ -270,7 +459,7 @@ const Profile = () => {
                 background: '#f8f9fa', 
                 border: '2px solid #e1e5e9',
                 borderRadius: '8px',
-                color: '#666'
+                color: '#333'
               }}>
                 {user.role === 'astrologer' ? t('register.astrologer') : t('register.client')}
               </div>

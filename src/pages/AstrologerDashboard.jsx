@@ -275,23 +275,31 @@ const AstrologerDashboard = () => {
     }
   }
 
-  // Синхронизируем профиль с данными пользователя
+  // Загружаем данные профиля из пользователя при первой загрузке
   useEffect(() => {
-    if (user) {
-      setProfile(prev => ({
-        ...prev,
-        name: user.name || prev.name,
-        email: user.email || '',
-        phone: user.phone || '',
-        specialty: user.specialty || prev.specialty,
-        experience: user.experience || prev.experience,
-        description: user.description || prev.description,
-        price: user.price || prev.price,
-        languages: user.languages || prev.languages,
-        services: user.services || prev.services
-      }))
+    if (user && user.id) {
+      console.log('Загрузка данных профиля из пользователя:', user)
+      setProfile(prev => {
+        // Если это первая загрузка или данные в user более актуальные, обновляем
+        const hasUserData = user.name || user.specialty || user.experience || user.description || user.price
+        
+        if (hasUserData) {
+          return {
+            name: user.name || prev.name,
+            email: user.email || prev.email || '',
+            phone: user.phone || prev.phone || '',
+            specialty: user.specialty || prev.specialty,
+            experience: user.experience || prev.experience,
+            description: user.description || prev.description,
+            price: user.price || prev.price,
+            languages: user.languages || prev.languages,
+            services: user.services || prev.services
+          }
+        }
+        return prev
+      })
     }
-  }, [user])
+  }, [user?.id]) // Обновляем только при изменении ID пользователя
 
   // Загружаем уроки астролога при изменении пользователя или лекций
   useEffect(() => {
@@ -396,34 +404,54 @@ const AstrologerDashboard = () => {
       // Обновляем данные пользователя со всеми полями профиля
       const updatedUser = {
         ...user,
-        name: profile.name,
-        email: profile.email,
-        phone: profile.phone,
-        specialty: profile.specialty,
-        experience: profile.experience,
-        description: profile.description,
-        price: profile.price,
-        languages: profile.languages,
-        services: profile.services
+        name: profile.name || user.name,
+        email: profile.email || user.email || '',
+        phone: profile.phone || user.phone || '',
+        specialty: profile.specialty || user.specialty || 'Астролог',
+        experience: profile.experience || user.experience || '15 лет',
+        description: profile.description || user.description || '',
+        price: profile.price || user.price || 3000,
+        languages: profile.languages && profile.languages.length > 0 ? profile.languages : (user.languages || ['Русский', 'Английский']),
+        services: profile.services && profile.services.length > 0 ? profile.services : (user.services || ['Натальная карта', 'Синастрия', 'Прогнозы'])
       }
       
       console.log('Обновленные данные пользователя:', updatedUser)
 
-      // Обновляем пользователя в AuthContext
+      // Обновляем пользователя в AuthContext (это сохранит в localStorage)
       updateUser(updatedUser)
       console.log('Пользователь обновлен в AuthContext')
+      
+      // Проверяем, что данные сохранились в localStorage
+      const savedUser = localStorage.getItem('user')
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser)
+        console.log('Проверка сохранения в localStorage:', parsedUser)
+      }
       
       // Обновляем специалиста в SpecialistsContext с полными данными
       const updatedSpecialistData = {
         ...updatedUser,
         rating: user.rating || 0,
         reviews: user.reviews || 0,
-        pricePerMinute: user.pricePerMinute || Math.round(profile.price / 60),
+        pricePerMinute: user.pricePerMinute || Math.round((profile.price || user.price || 3000) / 60),
         consultations: user.consultations || 0,
-        tags: profile.services || []
+        tags: (profile.services && profile.services.length > 0 ? profile.services : (user.services || []))
       }
       updateSpecialist(updatedSpecialistData)
       console.log('Специалист обновлен в SpecialistsContext')
+      
+      // Обновляем локальное состояние профиля, чтобы изменения сразу отображались
+      setProfile({
+        name: updatedUser.name,
+        email: updatedUser.email || '',
+        phone: updatedUser.phone || '',
+        specialty: updatedUser.specialty,
+        experience: updatedUser.experience,
+        description: updatedUser.description,
+        price: updatedUser.price,
+        languages: updatedUser.languages,
+        services: updatedUser.services
+      })
       
       setIsEditing(false)
       alert('Профиль успешно обновлен!')
@@ -432,7 +460,7 @@ const AstrologerDashboard = () => {
       
     } catch (error) {
       console.error('Ошибка при сохранении профиля:', error)
-      alert('Ошибка при сохранении профиля')
+      alert('Ошибка при сохранении профиля: ' + error.message)
     }
   }
 

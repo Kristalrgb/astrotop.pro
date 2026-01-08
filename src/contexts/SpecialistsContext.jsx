@@ -161,7 +161,8 @@ export const SpecialistsProvider = ({ children }) => {
       tags: ['Астрологические консультации'],
       available: true,
       email: userData.email,
-      phone: userData.phone
+      phone: userData.phone,
+      password: userData.password // Сохраняем пароль для возможности входа
     }
     
     console.log('Новый специалист:', newSpecialist)
@@ -202,6 +203,7 @@ export const SpecialistsProvider = ({ children }) => {
           name: userData.name,
           email: userData.email,
           phone: userData.phone,
+          password: userData.password || specialist.password, // Сохраняем пароль
           image: userData.profileImage || specialist.image,
           avatar: userData.profileImage || specialist.avatar,
           specialty: userData.specialty || specialist.specialty,

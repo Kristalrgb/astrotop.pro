@@ -15,31 +15,54 @@ const ImageUpload = ({
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef(null)
 
+  // Ensure maxSize is a valid number (convert to number if needed, use default if invalid)
+  let validMaxSize = 20 * 1024 * 1024 // По умолчанию 20 MB
+  if (typeof maxSize === 'number' && !isNaN(maxSize) && maxSize > 0) {
+    validMaxSize = maxSize
+  } else if (typeof maxSize === 'string') {
+    const parsed = parseFloat(maxSize)
+    if (!isNaN(parsed) && parsed > 0) {
+      validMaxSize = parsed
+    }
+  }
+  console.log('ImageUpload: Инициализация - maxSize prop:', maxSize, 'validMaxSize:', validMaxSize, 'MB:', (validMaxSize / 1024 / 1024).toFixed(2))
+
   const isSingleMode = single || typeof onImageChange === 'function'
+  
+  // Для single mode используем currentImage напрямую
   const displayedImages = isSingleMode
     ? (currentImage ? [{ id: 'single', preview: currentImage, name: 'image', size: 0 }] : [])
     : images
 
   const handleFileSelect = (files) => {
+    console.log('ImageUpload: maxSize prop =', maxSize, 'validMaxSize =', validMaxSize, 'bytes =', (validMaxSize / 1024 / 1024).toFixed(2), 'MB')
     const fileArray = Array.from(files)
     const validFiles = fileArray.filter(file => {
+      console.log('ImageUpload: Проверка файла', file.name, 'размер:', file.size, 'байт')
       if (!acceptedTypes.includes(file.type)) {
         alert(`Файл ${file.name} не поддерживается. Используйте JPEG, PNG, WebP или GIF.`)
         return false
       }
-      if (file.size > maxSize) {
-        alert(`Файл ${file.name} слишком большой. Максимальный размер: ${maxSize / 1024 / 1024}MB`)
+      console.log('ImageUpload: Файл', file.name, 'размер:', file.size, 'байт (', (file.size / 1024 / 1024).toFixed(2), 'MB), лимит:', validMaxSize, 'байт (', (validMaxSize / 1024 / 1024).toFixed(2), 'MB)')
+      if (file.size > validMaxSize) {
+        const maxSizeDisplay = formatMaxSize(validMaxSize)
+        const fileSizeDisplay = formatFileSize(file.size)
+        alert(`Файл ${file.name} слишком большой.\nРазмер файла: ${fileSizeDisplay}\nМаксимальный размер: ${maxSizeDisplay}`)
         return false
       }
       return true
     })
 
-    if (validFiles.length === 0) return
+    if (validFiles.length === 0) {
+      console.log('ImageUpload: Нет валидных файлов')
+      return
+    }
 
-    const currentCount = displayedImages.length
+    // Для single mode всегда заменяем текущее изображение
     const limit = isSingleMode ? 1 : maxImages
+    const currentCount = isSingleMode ? (currentImage ? 1 : 0) : displayedImages.length
 
-    if (currentCount + validFiles.length > limit) {
+    if (!isSingleMode && currentCount + validFiles.length > limit) {
       alert(`Максимальное количество изображений: ${limit}`)
       return
     }
@@ -66,14 +89,32 @@ const ImageUpload = ({
     Promise.all(promises).then(newImages => {
       if (isSingleMode) {
         const image = newImages[0]
-        if (onImageChange) {
-          onImageChange(image.preview, image)
+        if (onImageChange && image && image.preview) {
+          console.log('ImageUpload: Вызываем onImageChange с preview')
+          console.log('ImageUpload: preview начало:', image.preview.substring(0, 100))
+          console.log('ImageUpload: preview длина:', image.preview.length)
+          console.log('ImageUpload: preview тип:', typeof image.preview)
+          console.log('ImageUpload: preview валидный base64?', image.preview.startsWith('data:image/'))
+          
+          // Убеждаемся, что preview - это строка
+          if (typeof image.preview === 'string' && image.preview.startsWith('data:image/')) {
+            onImageChange(image.preview, image)
+            console.log('✅ ImageUpload: onImageChange успешно вызван')
+          } else {
+            console.error('❌ ImageUpload: preview не валидный base64!')
+            alert('Ошибка: не удалось загрузить изображение')
+          }
+        } else {
+          console.error('❌ ImageUpload: onImageChange не доступен или image не валидный')
         }
       } else if (onImagesChange) {
         onImagesChange([...images, ...newImages])
       }
       setUploading(false)
-    }).catch(() => setUploading(false))
+    }).catch((error) => {
+      console.error('ImageUpload: Ошибка при обработке изображений:', error)
+      setUploading(false)
+    })
   }
 
   const handleDrop = (e) => {
@@ -101,24 +142,48 @@ const ImageUpload = ({
 
   const removeImage = (imageId) => {
     if (isSingleMode) {
-      onImageChange && onImageChange(null)
+      if (onImageChange) {
+        console.log('ImageUpload: Удаление изображения в single mode')
+        onImageChange(null, null)
+      }
     } else if (onImagesChange) {
       onImagesChange(images.filter(img => img.id !== imageId))
     }
   }
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes'
+    if (!bytes || bytes === 0 || isNaN(bytes)) return '0 Bytes'
     const k = 1024
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  // Helper function to format maxSize for display
+  const formatMaxSize = (sizeInBytes) => {
+    let size = validMaxSize // По умолчанию используем validMaxSize
+    if (typeof sizeInBytes === 'number' && !isNaN(sizeInBytes) && sizeInBytes > 0) {
+      size = sizeInBytes
+    }
+    
+    // Защита от некорректных значений
+    if (size <= 0 || isNaN(size) || !isFinite(size)) {
+      size = 20 * 1024 * 1024 // Фолбэк на 20 MB
+    }
+    
+    if (size < 1024) {
+      return Math.round(size) + ' байт'
+    } else if (size < 1024 * 1024) {
+      return Math.round(size / 1024) + ' KB'
+    } else {
+      return (size / 1024 / 1024).toFixed(2) + ' MB'
+    }
+  }
+
   return (
     <div className="image-upload">
       <div className="upload-header">
-        <h4>📸 Фотографии товара</h4>
+        <h4>{isSingleMode ? '📸 Фото профиля' : '📸 Фотографии товара'}</h4>
         <span className="image-count">
           {displayedImages.length} / {isSingleMode ? 1 : maxImages}
         </span>
@@ -135,7 +200,7 @@ const ImageUpload = ({
         <input
           ref={fileInputRef}
           type="file"
-          multiple
+          multiple={!isSingleMode}
           accept={acceptedTypes.join(',')}
           onChange={handleFileInput}
           style={{ display: 'none' }}
@@ -149,15 +214,15 @@ const ImageUpload = ({
         ) : (
           <div className="upload-content">
             <FaUpload className="upload-icon" />
-            <h3>Перетащите изображения сюда</h3>
-            <p>или нажмите для выбора файлов</p>
+            <h3>{isSingleMode ? 'Нажмите, чтобы выбрать фото' : 'Перетащите изображения сюда'}</h3>
+            <p>{isSingleMode ? 'или перетащите файл сюда' : 'или нажмите для выбора файлов'}</p>
             <div className="upload-info">
               <p>Поддерживаемые форматы: JPEG, PNG, WebP, GIF</p>
-              <p>Максимальный размер: {maxSize / 1024 / 1024}MB</p>
-              <p>Максимум изображений: {isSingleMode ? 1 : maxImages}</p>
+              <p>Максимальный размер: {formatMaxSize(validMaxSize)}</p>
+              {!isSingleMode && <p>Максимум изображений: {maxImages}</p>}
             </div>
             <button type="button" className="upload-btn">
-              <FaPlus /> Выбрать файлы
+              <FaPlus /> {isSingleMode ? 'Выбрать фото' : 'Выбрать файлы'}
             </button>
           </div>
         )}
@@ -165,26 +230,56 @@ const ImageUpload = ({
 
       {/* Список загруженных изображений */}
       {displayedImages.length > 0 && (
-        <div className="images-grid">
+        <div className="images-grid" style={isSingleMode ? { maxWidth: '300px', margin: '0 auto' } : {}}>
           {displayedImages.map((image, index) => (
-            <div key={image.id} className="image-item">
-              <div className="image-preview">
-                <img src={image.preview} alt={`Preview ${index + 1}`} />
+            <div key={image.id} className="image-item" style={isSingleMode ? { width: '100%' } : {}}>
+              <div className="image-preview" style={isSingleMode ? { position: 'relative', width: '100%', paddingTop: '100%' } : {}}>
+                <img 
+                  src={image.preview} 
+                  alt={`Preview ${index + 1}`}
+                  style={isSingleMode ? {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '8px'
+                  } : {}}
+                />
                 <button
                   type="button"
                   className="remove-image-btn"
                   onClick={() => removeImage(image.id)}
                   title="Удалить изображение"
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: 'rgba(255, 0, 0, 0.8)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
                 >
                   <FaTrash />
                 </button>
               </div>
-              <div className="image-info">
-                <p className="image-name" title={image.name}>
-                  {image.name.length > 20 ? `${image.name.substring(0, 20)}...` : image.name}
-                </p>
-                <p className="image-size">{formatFileSize(image.size)}</p>
-              </div>
+              {!isSingleMode && (
+                <div className="image-info">
+                  <p className="image-name" title={image.name}>
+                    {image.name.length > 20 ? `${image.name.substring(0, 20)}...` : image.name}
+                  </p>
+                  <p className="image-size">{formatFileSize(image.size)}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -1067,23 +1067,179 @@ button[type="submit"].btn-primary:hover {
 
 /* Profile Avatar Styles */
 .profile-avatar {
-  width: 50px;
-  height: 50px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #667eea;
+  border: 3px solid #667eea;
 }
 
 .profile-avatar-placeholder {
-  width: 50px;
-  height: 50px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 1.2rem;
-  border: 2px solid #667eea;
+  font-size: 3rem;
+  border: 3px solid #667eea;
   margin: 0 auto;
+}
+
+/* Product description styles - white text */
+.product-description {
+  color: white !important;
+}
+
+.product-description p {
+  color: white !important;
+}
+
+/* Out of stock text - white */
+.out-of-stock {
+  color: white !important;
+}
+
+/* Profile page - black text for form elements */
+.profile-section .form-group label,
+.profile-section .form-group input,
+.profile-section .form-group select,
+.profile-section .form-group textarea,
+.profile-section h2,
+.profile-section h3,
+.profile-section h4 {
+  color: #333 !important;
+}
+
+.profile-section .form-group input::placeholder {
+  color: #999 !important;
+}
+
+/* Image upload component - white text */
+.image-upload,
+.image-upload * {
+  color: white !important;
+}
+
+.image-upload .upload-header h4,
+.image-upload .upload-header .image-count,
+.image-upload .upload-header span,
+.image-upload .upload-content h3,
+.image-upload .upload-content p,
+.image-upload .upload-info,
+.image-upload .upload-info p,
+.image-upload .uploading-content p,
+.image-upload .add-more-images,
+.image-upload .upload-btn,
+.image-upload .upload-btn *,
+.image-upload .upload-icon,
+.image-upload a,
+.image-upload a:link,
+.image-upload a:visited,
+.image-upload a:hover,
+.image-upload a:active {
+  color: white !important;
+}
+
+/* Image upload in profile section - ensure white text */
+.profile-section .image-upload,
+.profile-section .image-upload *,
+.profile-section .image-upload h4,
+.profile-section .image-upload span,
+.profile-section .image-upload .image-count,
+.profile-section .image-upload h3,
+.profile-section .image-upload p,
+.profile-section .image-upload .upload-header,
+.profile-section .image-upload .upload-header *,
+.profile-section .image-upload .upload-content,
+.profile-section .image-upload .upload-content *,
+.profile-section .image-upload .upload-info,
+.profile-section .image-upload .upload-info *,
+.profile-section .image-upload .upload-info p,
+.profile-section .image-upload .upload-area,
+.profile-section .image-upload .upload-area *,
+.profile-section .image-upload button,
+.profile-section .image-upload button *,
+.profile-section .image-upload a,
+.profile-section .image-upload a *,
+.profile-section .image-upload a:link,
+.profile-section .image-upload a:visited,
+.profile-section .image-upload a:hover,
+.profile-section .image-upload a:active {
+  color: white !important;
+}
+
+/* Store page - all text white */
+.store-page,
+.store-page * {
+  color: white !important;
+}
+
+.store-page .product-name {
+  color: white !important;
+}
+
+.store-page .product-info,
+.store-page .product-info * {
+  color: white !important;
+}
+
+.store-page .product-rating,
+.store-page .rating-text {
+  color: white !important;
+}
+
+.store-page .product-price,
+.store-page .price-rub,
+.store-page .price-other {
+  color: white !important;
+}
+
+.store-page .cart-summary,
+.store-page .cart-info,
+.store-page .cart-total {
+  color: white !important;
+}
+
+.store-page .no-products,
+.store-page .no-products * {
+  color: white !important;
+}
+
+.store-page .products-info,
+.store-page .products-info * {
+  color: white !important;
+}
+
+.store-page .search-section,
+.store-page .search-section * {
+  color: white !important;
+}
+
+.store-page .category-filters,
+.store-page .category-filter,
+.store-page .category-name {
+  color: white !important;
+}
+
+.store-page .sort-controls,
+.store-page .sort-controls * {
+  color: white !important;
+}
+
+.store-page input,
+.store-page select,
+.store-page option {
+  color: white !important;
+}
+
+.store-page h1,
+.store-page h2,
+.store-page h3,
+.store-page h4,
+.store-page p,
+.store-page span {
+  color: white !important;
 }
