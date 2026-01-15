@@ -12,5 +12,18 @@ export default defineConfig({
         ws: true
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 600, // Увеличиваем лимит предупреждения до 600 kB
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Разделяем большие библиотеки на отдельные чанки
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'icons': ['react-icons'],
+          'utils': ['axios', 'date-fns']
+        }
+      }
+    }
   }
 })
