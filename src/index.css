@@ -1087,3 +1087,114 @@ button[type="submit"].btn-primary:hover {
   border: 2px solid #667eea;
   margin: 0 auto;
 }
+
+/* Store page - все элементы белые */
+.store-page,
+.store-page * {
+  color: white !important;
+}
+
+.store-page .product-name {
+  color: white !important;
+}
+
+.store-page .product-info,
+.store-page .product-info * {
+  color: white !important;
+}
+
+.store-page .product-rating,
+.store-page .rating-text {
+  color: white !important;
+}
+
+.store-page .product-price,
+.store-page .price-rub,
+.store-page .price-other {
+  color: white !important;
+}
+
+.store-page .cart-summary,
+.store-page .cart-info,
+.store-page .cart-total {
+  color: white !important;
+}
+
+.store-page .no-products,
+.store-page .no-products * {
+  color: white !important;
+}
+
+.store-page .products-info,
+.store-page .products-info * {
+  color: white !important;
+}
+
+.store-page .search-section,
+.store-page .search-section * {
+  color: white !important;
+}
+
+.store-page .category-filters,
+.store-page .category-filter,
+.store-page .category-name {
+  color: white !important;
+}
+
+.store-page .sort-controls,
+.store-page .sort-controls * {
+  color: white !important;
+}
+
+.store-page input,
+.store-page select,
+.store-page option {
+  color: white !important;
+}
+
+.store-page h1,
+.store-page h2,
+.store-page h3,
+.store-page h4,
+.store-page p,
+.store-page span {
+  color: white !important;
+}
+
+/* Кнопки "В корзину", "Нет в наличии", "Оформить заказ" - белый текст */
+.add-to-cart-btn,
+.add-to-cart-btn *,
+.add-to-cart-btn.disabled,
+.add-to-cart-btn.disabled * {
+  color: white !important;
+}
+
+.checkout-btn,
+.checkout-btn * {
+  color: white !important;
+}
+
+/* Кнопка "Оформить заказ" в CheckoutModal */
+.checkout-modal .btn-primary,
+.checkout-modal .btn-primary * {
+  color: white !important;
+}
+
+/* Profile section - заголовок "Личная информация" белый */
+.profile-section h2 {
+  color: white !important;
+}
+
+/* Product description styles - white text */
+.product-description {
+  color: white !important;
+}
+
+.product-description p {
+  color: white !important;
+}
+
+/* Out of stock text - white */
+.out-of-stock {
+  color: white !important;
+}
