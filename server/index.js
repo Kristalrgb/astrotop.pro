@@ -40,7 +40,9 @@ app.use(cors({
   },
   credentials: true
 }))
-app.use(express.json())
+// Увеличиваем лимит размера тела запроса до 50MB для больших новостей с изображениями
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 app.use(express.static(path.join(__dirname, '../dist')))
 
 // Локальное хранилище новостей
