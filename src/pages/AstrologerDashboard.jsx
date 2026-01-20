@@ -303,29 +303,79 @@ const AstrologerDashboard = () => {
     }
   }, [user, lectures, getLecturesByAuthor])
 
-  // Моковые данные
+  // Загрузка консультаций с бэкенда
   useEffect(() => {
-    const mockConsultations = [
-      {
-        id: 1,
-        clientName: 'Анна Смирнова',
-        date: '2024-01-15',
-        time: '14:00',
-        duration: 60,
-        status: 'upcoming',
-        type: 'individual'
-      },
-      {
-        id: 2,
-        clientName: 'Михаил Козлов',
-        date: '2024-01-16',
-        time: '16:00',
-        duration: 45,
-        status: 'upcoming',
-        type: 'group'
+    const loadConsultations = async () => {
+      if (!user || !user.id) {
+        console.log('Пользователь не найден, используем моковые данные')
+        setConsultations([])
+        return
       }
-    ]
 
+      const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+      
+      // Загружаем бронирования с бэкенда
+      if (API_BASE_URL) {
+        try {
+          console.log('Загрузка бронирований для астролога:', user.id)
+          const response = await fetch(`${API_BASE_URL}/api/bookings?specialistId=${user.id}`)
+          
+          if (response.ok) {
+            const bookings = await response.json()
+            console.log('Бронирования загружены:', bookings)
+            
+            // Преобразуем бронирования в формат консультаций
+            const consultationsData = bookings.map(booking => ({
+              id: booking.id,
+              clientName: booking.clientName || 'Клиент',
+              clientId: booking.clientId,
+              date: booking.date,
+              time: booking.time,
+              duration: booking.duration || 60,
+              status: booking.status === 'pending' ? 'upcoming' : booking.status === 'completed' ? 'completed' : 'upcoming',
+              type: booking.type === 'group' ? 'group' : 'individual',
+              language: booking.language || 'ru',
+              phoneNumber: booking.phoneNumber,
+              notes: booking.notes,
+              basePrice: booking.basePrice,
+              finalPrice: booking.finalPrice,
+              promoCode: booking.promoCode,
+              createdAt: booking.createdAt
+            }))
+            
+            // Сортируем по дате (ближайшие первыми)
+            consultationsData.sort((a, b) => {
+              const dateA = new Date(`${a.date}T${a.time}`)
+              const dateB = new Date(`${b.date}T${b.time}`)
+              return dateA - dateB
+            })
+            
+            setConsultations(consultationsData)
+            console.log('Консультации установлены:', consultationsData)
+          } else {
+            console.warn('Ошибка загрузки бронирований:', response.status)
+            setConsultations([])
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки бронирований:', error)
+          setConsultations([])
+        }
+      } else {
+        console.warn('VITE_API_URL не настроен, используем пустой список')
+        setConsultations([])
+      }
+    }
+
+    loadConsultations()
+    
+    // Загружаем консультации каждые 30 секунд для обновления
+    const interval = setInterval(loadConsultations, 30000)
+    
+    return () => clearInterval(interval)
+  }, [user])
+
+  // Моковые данные для расписания
+  useEffect(() => {
     const mockSchedule = [
       { day: 'Понедельник', start: '09:00', end: '18:00', available: true },
       { day: 'Вторник', start: '09:00', end: '18:00', available: true },
@@ -336,7 +386,6 @@ const AstrologerDashboard = () => {
       { day: 'Воскресенье', start: '10:00', end: '16:00', available: false }
     ]
 
-    setConsultations(mockConsultations)
     setSchedule(mockSchedule)
   }, [])
 
@@ -1238,15 +1287,36 @@ const AstrologerDashboard = () => {
                 <h3 style={{ marginBottom: '10px' }}>
                   {consultation.type === 'group' ? 'Групповая консультация' : 'Индивидуальная консультация'}
                 </h3>
-                <p style={{ color: '#666', marginBottom: '10px' }}>
+                <p style={{ color: '#666', marginBottom: '8px' }}>
                   <strong>Клиент:</strong> {consultation.clientName}
                 </p>
-                <p style={{ color: '#666', marginBottom: '10px' }}>
-                  <strong>Дата:</strong> {consultation.date} в {consultation.time}
+                <p style={{ color: '#666', marginBottom: '8px' }}>
+                  <strong>Дата и время:</strong> {consultation.date} в {consultation.time}
                 </p>
-                <p style={{ color: '#666' }}>
+                <p style={{ color: '#666', marginBottom: '8px' }}>
                   <strong>Длительность:</strong> {consultation.duration} минут
                 </p>
+                {consultation.language && (
+                  <p style={{ color: '#666', marginBottom: '8px' }}>
+                    <strong>Язык:</strong> {consultation.language === 'ru' ? 'Русский' : consultation.language === 'en' ? 'English' : consultation.language}
+                  </p>
+                )}
+                {consultation.phoneNumber && (
+                  <p style={{ color: '#666', marginBottom: '8px' }}>
+                    <strong>Телефон:</strong> {consultation.phoneNumber}
+                  </p>
+                )}
+                {consultation.finalPrice && (
+                  <p style={{ color: '#666', marginBottom: '8px' }}>
+                    <strong>Стоимость:</strong> {consultation.finalPrice} ₽
+                    {consultation.promoCode && <span style={{ color: '#28a745', marginLeft: '10px' }}>(Промокод: {consultation.promoCode})</span>}
+                  </p>
+                )}
+                {consultation.notes && (
+                  <p style={{ color: '#666', marginBottom: '8px' }}>
+                    <strong>Примечания:</strong> {consultation.notes}
+                  </p>
+                )}
               </div>
               
               <div style={{ textAlign: 'right' }}>
@@ -1255,10 +1325,10 @@ const AstrologerDashboard = () => {
                   borderRadius: '20px',
                   fontSize: '12px',
                   fontWeight: 'bold',
-                  background: consultation.status === 'upcoming' ? '#ffc107' : '#6c757d',
+                  background: consultation.status === 'upcoming' ? '#ffc107' : consultation.status === 'completed' ? '#28a745' : '#6c757d',
                   color: 'white'
                 }}>
-                  {consultation.status === 'upcoming' ? 'Предстоит' : 'Завершена'}
+                  {consultation.status === 'upcoming' ? 'Предстоит' : consultation.status === 'completed' ? 'Завершена' : 'Отменена'}
                 </span>
               </div>
             </div>
