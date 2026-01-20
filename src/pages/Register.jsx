@@ -84,15 +84,57 @@ const Register = () => {
 
     try {
       console.log('Создание пользователя...')
-      // Моковая регистрация
-      const userData = {
-        id: Date.now(),
+      
+      const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+      
+      let userData = {
+        id: Date.now().toString(),
         name: formData.name.trim(),
         email: formData.email.toLowerCase().trim(), // Нормализуем email (нижний регистр, без пробелов)
         phone: formData.phone.trim(),
         password: formData.password, // Сохраняем пароль
         role: formData.role,
         profileImage: profileImage
+      }
+      
+      // Сохраняем пользователя на бэкенде
+      if (API_BASE_URL) {
+        try {
+          console.log('Отправка данных на бэкенд...')
+          const response = await fetch(`${API_BASE_URL}/api/users`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: userData.name,
+              email: userData.email,
+              phone: userData.phone,
+              password: userData.password,
+              role: userData.role,
+              profileImage: userData.profileImage
+            })
+          })
+          
+          if (response.ok) {
+            const savedUser = await response.json()
+            console.log('Пользователь сохранен на бэкенде:', savedUser)
+            userData.id = savedUser.id // Используем ID с бэкенда
+            userData = { ...userData, ...savedUser }
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            if (response.status === 409) {
+              setError('Пользователь с таким email уже существует')
+              setIsLoading(false)
+              return
+            }
+            console.warn('Ошибка сохранения на бэкенде:', response.status, errorData)
+            // Продолжаем с локальными данными
+          }
+        } catch (error) {
+          console.error('Ошибка при сохранении на бэкенде:', error)
+          // Продолжаем с локальными данными
+        }
       }
       
       console.log('Данные пользователя:', userData)

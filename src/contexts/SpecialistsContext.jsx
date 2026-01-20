@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const SpecialistsContext = createContext()
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+
 export const useSpecialists = () => {
   const context = useContext(SpecialistsContext)
   if (!context) {
@@ -12,12 +14,10 @@ export const useSpecialists = () => {
 
 export const SpecialistsProvider = ({ children }) => {
   const [specialists, setSpecialists] = useState([])
+  const [loading, setLoading] = useState(true)
 
   // Инициализация моковых данных специалистов
-  useEffect(() => {
-    console.log('=== ИНИЦИАЛИЗАЦИЯ СПЕЦИАЛИСТОВ ===')
-    
-    const mockSpecialists = [
+  const mockSpecialists = [
       {
         id: 1,
         name: 'Елена Петрова',
@@ -113,33 +113,54 @@ export const SpecialistsProvider = ({ children }) => {
         available: true,
         isOnline: true
       }
-    ]
+  ]
 
-    console.log('Моковые специалисты:', mockSpecialists)
-
-    // Загружаем сохраненных специалистов из localStorage
-    const savedSpecialists = localStorage.getItem('specialists')
-    console.log('Сохраненные специалисты из localStorage:', savedSpecialists)
+  // Загрузка специалистов с бэкенда
+  useEffect(() => {
+    console.log('=== ИНИЦИАЛИЗАЦИЯ СПЕЦИАЛИСТОВ ===')
+    console.log('API_BASE_URL:', API_BASE_URL)
     
-    if (savedSpecialists && savedSpecialists !== 'null') {
+    const loadSpecialists = async () => {
+      setLoading(true)
+      
       try {
-        const parsedSpecialists = JSON.parse(savedSpecialists)
-        console.log('Распарсенные специалисты:', parsedSpecialists)
-        const allSpecialists = [...mockSpecialists, ...parsedSpecialists]
-        console.log('Итоговый список специалистов:', allSpecialists)
-        setSpecialists(allSpecialists)
+        // Загружаем астрологов с бэкенда
+        if (API_BASE_URL) {
+          console.log('Загрузка астрологов с бэкенда...')
+          const response = await fetch(`${API_BASE_URL}/api/astrologers`)
+          
+          if (response.ok) {
+            const backendAstrologers = await response.json()
+            console.log('Астрологи с бэкенда:', backendAstrologers)
+            
+            // Объединяем моковых и реальных астрологов
+            // Моковые специалисты имеют id от 1 до 5, реальные - строковые id
+            const allSpecialists = [...mockSpecialists, ...backendAstrologers]
+            console.log('Итоговый список специалистов:', allSpecialists)
+            setSpecialists(allSpecialists)
+            setLoading(false)
+            return
+          } else {
+            console.warn('Ошибка загрузки астрологов с бэкенда:', response.status)
+          }
+        } else {
+          console.warn('VITE_API_URL не настроен. Используются только моковые данные.')
+        }
       } catch (error) {
-        console.log('Ошибка при парсинге специалистов из localStorage:', error)
-        setSpecialists(mockSpecialists)
+        console.error('Ошибка загрузки астрологов с бэкенда:', error)
       }
-    } else {
-      console.log('Нет сохраненных специалистов, используем только моковые')
+      
+      // Если бэкенд недоступен, используем только моковых специалистов
+      console.log('Используем только моковых специалистов')
       setSpecialists(mockSpecialists)
+      setLoading(false)
     }
+    
+    loadSpecialists()
   }, [])
 
   // Функция для добавления нового специалиста
-  const addSpecialist = (userData) => {
+  const addSpecialist = async (userData) => {
     console.log('=== ДОБАВЛЕНИЕ СПЕЦИАЛИСТА ===')
     console.log('Данные пользователя:', userData)
     console.log('Текущий список специалистов:', specialists)
@@ -166,20 +187,19 @@ export const SpecialistsProvider = ({ children }) => {
     
     console.log('Новый специалист:', newSpecialist)
 
+    // Обновляем локальное состояние
     const updatedSpecialists = [...specialists, newSpecialist]
     console.log('Обновленный список специалистов:', updatedSpecialists)
     setSpecialists(updatedSpecialists)
     
-    // Сохраняем в localStorage только новых специалистов (без моковых)
-    const newSpecialists = updatedSpecialists.slice(5) // Исключаем первые 5 моковых
-    console.log('Специалисты для сохранения в localStorage:', newSpecialists)
-    localStorage.setItem('specialists', JSON.stringify(newSpecialists))
+    // Пользователь уже должен быть сохранен на бэкенде при регистрации
+    // Но если нужно обновить профиль астролога, можно вызвать updateSpecialist
     
     console.log('Специалист успешно добавлен!')
   }
 
   // Функция для обновления специалиста
-  const updateSpecialist = (userData) => {
+  const updateSpecialist = async (userData) => {
     console.log('=== ОБНОВЛЕНИЕ СПЕЦИАЛИСТА ===')
     console.log('Данные пользователя для обновления:', userData)
     console.log('Текущий список специалистов:', specialists)
@@ -191,10 +211,44 @@ export const SpecialistsProvider = ({ children }) => {
     
     if (!existingSpecialist) {
       console.log('Специалист не найден, добавляем нового...')
-      addSpecialist(userData)
+      await addSpecialist(userData)
       return
     }
     
+    // Обновляем на бэкенде
+    if (API_BASE_URL && userData.id) {
+      try {
+        const updateData = {
+          name: userData.name,
+          phone: userData.phone,
+          profileImage: userData.profileImage,
+          specialty: userData.specialty,
+          experience: userData.experience,
+          description: userData.description,
+          price: userData.price,
+          languages: userData.languages,
+          services: userData.services
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/users/${userData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        })
+        
+        if (response.ok) {
+          console.log('Специалист обновлен на бэкенде')
+        } else {
+          console.warn('Ошибка обновления специалиста на бэкенде:', response.status)
+        }
+      } catch (error) {
+        console.error('Ошибка обновления специалиста на бэкенде:', error)
+      }
+    }
+    
+    // Обновляем локальное состояние
     const updatedSpecialists = specialists.map(specialist => {
       if (specialist.id === userData.id) {
         const updated = {
@@ -222,11 +276,6 @@ export const SpecialistsProvider = ({ children }) => {
     console.log('Обновленный список специалистов:', updatedSpecialists)
     setSpecialists(updatedSpecialists)
     
-    // Обновляем в localStorage
-    const newSpecialists = updatedSpecialists.slice(5) // Исключаем первые 5 моковых
-    console.log('Специалисты для сохранения в localStorage:', newSpecialists)
-    localStorage.setItem('specialists', JSON.stringify(newSpecialists))
-    
     console.log('Специалист успешно обновлен!')
   }
 
@@ -236,19 +285,32 @@ export const SpecialistsProvider = ({ children }) => {
   }
 
   // Функция для удаления специалиста
-  const deleteSpecialist = (userId) => {
+  const deleteSpecialist = async (userId) => {
     console.log('=== УДАЛЕНИЕ СПЕЦИАЛИСТА ===')
     console.log('ID пользователя для удаления:', userId)
     
+    // Удаляем с бэкенда
+    if (API_BASE_URL && userId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          console.log('Специалист удален с бэкенда')
+        } else {
+          console.warn('Ошибка удаления специалиста с бэкенда:', response.status)
+        }
+      } catch (error) {
+        console.error('Ошибка удаления специалиста с бэкенда:', error)
+      }
+    }
+    
+    // Обновляем локальное состояние
     const updatedSpecialists = specialists.filter(s => s.id !== userId)
     console.log('Обновленный список специалистов:', updatedSpecialists)
     
     setSpecialists(updatedSpecialists)
-    
-    // Обновляем в localStorage
-    const newSpecialists = updatedSpecialists.slice(5) // Исключаем первые 5 моковых
-    console.log('Специалисты для сохранения в localStorage:', newSpecialists)
-    localStorage.setItem('specialists', JSON.stringify(newSpecialists))
     
     console.log('Специалист успешно удален!')
   }
@@ -264,15 +326,12 @@ export const SpecialistsProvider = ({ children }) => {
     
     setSpecialists(mockSpecialistsOnly)
     
-    // Очищаем localStorage от всех дополнительных специалистов
-    localStorage.removeItem('specialists')
-    console.log('localStorage specialists очищен')
-    
     console.log('Все астрологи успешно удалены!')
   }
 
   const value = {
     specialists,
+    loading,
     addSpecialist,
     updateSpecialist,
     deleteSpecialist,

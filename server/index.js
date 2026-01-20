@@ -107,6 +107,36 @@ const writeBookings = (bookings) => {
 
 ensureBookingsStorage()
 
+// Хранение пользователей
+const USERS_DIR = path.join(__dirname, 'data')
+const USERS_FILE = path.join(USERS_DIR, 'users.json')
+
+const ensureUsersStorage = () => {
+  if (!fs.existsSync(USERS_DIR)) {
+    fs.mkdirSync(USERS_DIR, { recursive: true })
+  }
+  if (!fs.existsSync(USERS_FILE)) {
+    fs.writeFileSync(USERS_FILE, JSON.stringify([]))
+  }
+}
+
+const readUsers = () => {
+  try {
+    const raw = fs.readFileSync(USERS_FILE, 'utf-8')
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.error('Ошибка чтения пользователей:', error)
+    return []
+  }
+}
+
+const writeUsers = (users) => {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
+}
+
+ensureUsersStorage()
+
 // Функция отправки SMS напоминания (моковая - в продакшене использовать реальный SMS API)
 const sendSMSReminder = async (phoneNumber, bookingData) => {
   console.log(`📱 Отправка SMS на ${phoneNumber}:`)
@@ -624,6 +654,153 @@ app.post('/api/bookings/:id/send-reminder', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Ошибка отправки напоминания', details: error.message })
   }
+})
+
+// API для пользователей
+app.post('/api/users', (req, res) => {
+  const { name, email, phone, password, role, profileImage } = req.body
+
+  if (!name?.trim() || !email?.trim() || !password) {
+    return res.status(400).json({ error: 'Заполните все обязательные поля' })
+  }
+
+  const users = readUsers()
+  
+  // Проверяем, не существует ли уже пользователь с таким email
+  const normalizedEmail = email.toLowerCase().trim()
+  const existingUser = users.find(u => u.email.toLowerCase().trim() === normalizedEmail)
+  
+  if (existingUser) {
+    return res.status(409).json({ error: 'Пользователь с таким email уже существует' })
+  }
+
+  const newUser = {
+    id: Date.now().toString(),
+    name: name.trim(),
+    email: normalizedEmail,
+    phone: phone?.trim() || '',
+    password: password, // В продакшене нужно хешировать пароль!
+    role: role || 'client',
+    profileImage: profileImage || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+
+  users.push(newUser)
+  writeUsers(users)
+
+  // Удаляем пароль из ответа
+  const { password: _, ...userResponse } = newUser
+  res.status(201).json(userResponse)
+})
+
+app.get('/api/users', (req, res) => {
+  const { email, role } = req.query
+  let users = readUsers()
+
+  if (email) {
+    const normalizedEmail = email.toLowerCase().trim()
+    users = users.filter(u => u.email.toLowerCase().trim() === normalizedEmail)
+  }
+
+  if (role) {
+    users = users.filter(u => u.role === role)
+  }
+
+  // Удаляем пароли из ответа
+  const usersWithoutPasswords = users.map(({ password, ...user }) => user)
+  res.json(usersWithoutPasswords)
+})
+
+app.get('/api/users/:id', (req, res) => {
+  const users = readUsers()
+  const user = users.find(u => u.id === req.params.id)
+
+  if (!user) {
+    return res.status(404).json({ error: 'Пользователь не найден' })
+  }
+
+  // Удаляем пароль из ответа
+  const { password, ...userResponse } = user
+  res.json(userResponse)
+})
+
+app.put('/api/users/:id', (req, res) => {
+  const { name, phone, profileImage, specialty, experience, description, price, languages, services } = req.body
+  const users = readUsers()
+  const index = users.findIndex(u => u.id === req.params.id)
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'Пользователь не найден' })
+  }
+
+  const updatedUser = {
+    ...users[index],
+    ...(name && { name: name.trim() }),
+    ...(phone && { phone: phone.trim() }),
+    ...(profileImage && { profileImage }),
+    ...(specialty && { specialty }),
+    ...(experience && { experience }),
+    ...(description && { description }),
+    ...(price && { price }),
+    ...(languages && { languages }),
+    ...(services && { services }),
+    updatedAt: new Date().toISOString()
+  }
+
+  users[index] = updatedUser
+  writeUsers(users)
+
+  // Удаляем пароль из ответа
+  const { password, ...userResponse } = updatedUser
+  res.json(userResponse)
+})
+
+app.delete('/api/users/:id', (req, res) => {
+  const users = readUsers()
+  const index = users.findIndex(u => u.id === req.params.id)
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'Пользователь не найден' })
+  }
+
+  const [removed] = users.splice(index, 1)
+  writeUsers(users)
+
+  // Удаляем пароль из ответа
+  const { password, ...userResponse } = removed
+  res.json({ success: true, user: userResponse })
+})
+
+// API для получения списка астрологов (специалистов)
+app.get('/api/astrologers', (req, res) => {
+  const users = readUsers()
+  const astrologers = users.filter(u => u.role === 'astrologer')
+
+  // Преобразуем пользователей в формат специалистов
+  const specialists = astrologers.map(user => ({
+    id: user.id,
+    name: user.name,
+    specialty: user.specialty || 'Астролог',
+    rating: user.rating || 0,
+    reviews: user.reviews || 0,
+    price: user.price || 2000,
+    pricePerMinute: user.pricePerMinute || Math.round((user.price || 2000) / 60),
+    experience: user.experience || 'Новый специалист',
+    consultations: user.consultations || 0,
+    languages: user.languages || ['Русский'],
+    services: user.services || ['Астрологические консультации'],
+    description: user.description || 'Профессиональный астролог',
+    image: user.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658f4ff4e?w=300&h=200&fit=crop&crop=face',
+    avatar: user.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658f4ff4e?w=300&h=200&fit=crop&crop=face',
+    tags: user.services || ['Астрологические консультации'],
+    available: user.available !== undefined ? user.available : true,
+    isOnline: user.isOnline !== undefined ? user.isOnline : false,
+    email: user.email,
+    phone: user.phone
+  }))
+
+  res.json(specialists)
 })
 
 // Обработка всех остальных маршрутов для SPA
