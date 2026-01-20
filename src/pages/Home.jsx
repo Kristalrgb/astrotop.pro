@@ -58,9 +58,6 @@ const Home = () => {
               <Link to="/register" className="btn btn-primary register-btn" style={{ fontSize: '0.9rem', padding: '10px 20px' }}>
                 {t('home.buttons.register')}
               </Link>
-              <Link to="/deploy" className="btn btn-primary" style={{ fontSize: '0.9rem', padding: '10px 20px', background: '#9c27b0', borderColor: '#9c27b0' }}>
-                🚀 {currentLanguage === 'en' ? 'Deploy Project' : 'Деплой проекта'}
-              </Link>
             </div>
           </div>
         </div>

@@ -14,7 +14,6 @@ import VideoChat from './pages/VideoChat'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
-import Deploy from './pages/Deploy'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { PaymentProvider } from './contexts/PaymentContext'
@@ -50,7 +49,6 @@ function App() {
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
-                        <Route path="/deploy" element={<Deploy />} />
                       </Routes>
                     </main>
                     <Footer />

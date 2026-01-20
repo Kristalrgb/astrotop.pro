@@ -40,8 +40,6 @@ const Header = () => {
               <li><Link to="/specialists">{t('navigation.specialists')}</Link></li>
               <li><Link to="/store">{t('navigation.store')}</Link></li>
               <li><Link to="/school">{t('navigation.school')}</Link></li>
-              <li><Link to="/deploy" style={{ color: '#9c27b0', fontWeight: '600' }}>{currentLanguage === 'en' ? '🚀 Deploy' : '🚀 Деплой'}</Link></li>
-              <li><Link to="/admin" className="admin-link">{currentLanguage === 'en' ? '🛠️ Admin' : '🛠️ Админ'}</Link></li>
               
               {user ? (
                 <>
