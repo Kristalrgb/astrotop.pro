@@ -45,6 +45,21 @@ app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 app.use(express.static(path.join(__dirname, '../dist')))
 
+// Middleware для логирования всех HTTP запросов
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] ${req.method} ${req.path}`)
+  if (req.method === 'POST' || req.method === 'PUT') {
+    // Логируем тело запроса (без паролей)
+    const body = { ...req.body }
+    if (body.password) {
+      body.password = '***HIDDEN***'
+    }
+    console.log(`[${timestamp}] Request body:`, JSON.stringify(body, null, 2))
+  }
+  next()
+})
+
 // Локальное хранилище новостей
 const NEWS_DIR = path.join(__dirname, 'data')
 const NEWS_FILE = path.join(NEWS_DIR, 'news.json')
@@ -589,6 +604,7 @@ app.post('/api/bookings', (req, res) => {
   const bookingData = req.body
 
   if (!bookingData.specialistId || !bookingData.clientId || !bookingData.date || !bookingData.time) {
+    console.log('❌ ОШИБКА БРОНИРОВАНИЯ: Не все обязательные поля заполнены')
     return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
   }
 
@@ -602,6 +618,10 @@ app.post('/api/bookings', (req, res) => {
 
   bookings.push(newBooking)
   writeBookings(bookings)
+
+  // Логируем успешное бронирование
+  console.log(`✅ БРОНИРОВАНИЕ СОЗДАНО: Клиент ${bookingData.clientName} → Астролог ID: ${bookingData.specialistId}, Дата: ${bookingData.date} ${bookingData.time}`)
+  console.log(`📊 Всего бронирований: ${bookings.length}`)
 
   // Планируем проверку напоминания для этого бронирования
   setTimeout(() => checkAndSendReminders(), 1000)
@@ -688,6 +708,10 @@ app.post('/api/users', (req, res) => {
 
   users.push(newUser)
   writeUsers(users)
+
+  // Логируем успешную регистрацию
+  console.log(`✅ ПОЛЬЗОВАТЕЛЬ ЗАРЕГИСТРИРОВАН: ${newUser.name} (${newUser.email}), роль: ${newUser.role}, ID: ${newUser.id}`)
+  console.log(`📊 Всего пользователей: ${users.length}`)
 
   // Удаляем пароль из ответа
   const { password: _, ...userResponse } = newUser
@@ -776,6 +800,11 @@ app.delete('/api/users/:id', (req, res) => {
 app.get('/api/astrologers', (req, res) => {
   const users = readUsers()
   const astrologers = users.filter(u => u.role === 'astrologer')
+  
+  console.log(`📋 ЗАПРОС АСТРОЛОГОВ: Найдено ${astrologers.length} астрологов из ${users.length} пользователей`)
+  if (astrologers.length > 0) {
+    console.log(`📋 Список астрологов:`, astrologers.map(a => `${a.name} (ID: ${a.id})`).join(', '))
+  }
 
   // Преобразуем пользователей в формат специалистов
   const specialists = astrologers.map(user => ({
