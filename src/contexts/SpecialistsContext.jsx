@@ -157,6 +157,11 @@ export const SpecialistsProvider = ({ children }) => {
     }
     
     loadSpecialists()
+    
+    // Обновляем список каждые 30 секунд для получения новых астрологов
+    const interval = setInterval(loadSpecialists, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   // Функция для добавления нового специалиста

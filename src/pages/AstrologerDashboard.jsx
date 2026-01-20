@@ -317,8 +317,59 @@ const AstrologerDashboard = () => {
       // Загружаем бронирования с бэкенда
       if (API_BASE_URL) {
         try {
-          console.log('Загрузка бронирований для астролога:', user.id)
-          const response = await fetch(`${API_BASE_URL}/api/bookings?specialistId=${user.id}`)
+          // Пробуем загрузить по user.id (ID пользователя)
+          console.log('Загрузка бронирований для астролога (user.id):', user.id)
+          let response = await fetch(`${API_BASE_URL}/api/bookings?specialistId=${user.id}`)
+          
+          // Если не найдено, пробуем загрузить все бронирования и фильтровать
+          if (!response.ok || (response.ok && (await response.json()).length === 0)) {
+            console.log('Попытка загрузить все бронирования...')
+            response = await fetch(`${API_BASE_URL}/api/bookings`)
+            if (response.ok) {
+              const allBookings = await response.json()
+              console.log('Все бронирования:', allBookings)
+              // Фильтруем по specialistId, сравнивая как строки
+              const userBookings = allBookings.filter(booking => 
+                String(booking.specialistId) === String(user.id)
+              )
+              console.log('Отфильтрованные бронирования для астролога:', userBookings)
+              
+              if (userBookings.length > 0) {
+                const consultationsData = userBookings.map(booking => ({
+                  id: booking.id,
+                  clientName: booking.clientName || 'Клиент',
+                  clientId: booking.clientId,
+                  date: booking.date,
+                  time: booking.time,
+                  duration: booking.duration || 60,
+                  status: booking.status === 'pending' ? 'upcoming' : booking.status === 'completed' ? 'completed' : 'upcoming',
+                  type: booking.type === 'group' ? 'group' : 'individual',
+                  language: booking.language || 'ru',
+                  phoneNumber: booking.phoneNumber,
+                  notes: booking.notes,
+                  basePrice: booking.basePrice,
+                  finalPrice: booking.finalPrice,
+                  promoCode: booking.promoCode,
+                  createdAt: booking.createdAt
+                }))
+                
+                consultationsData.sort((a, b) => {
+                  const dateA = new Date(`${a.date}T${a.time}`)
+                  const dateB = new Date(`${b.date}T${b.time}`)
+                  return dateA - dateB
+                })
+                
+                setConsultations(consultationsData)
+                console.log('Консультации установлены:', consultationsData)
+                return
+              }
+            }
+          }
+          
+          // Если response.ok, обрабатываем как обычно
+          if (response.ok) {
+            const bookings = await response.json()
+            console.log('Бронирования загружены:', bookings)
           
           if (response.ok) {
             const bookings = await response.json()
