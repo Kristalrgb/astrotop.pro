@@ -98,6 +98,7 @@ const Register = () => {
       }
       
       // Сохраняем пользователя на бэкенде
+      let savedOnBackend = false
       if (API_BASE_URL) {
         try {
           console.log('Отправка данных на бэкенд...')
@@ -121,6 +122,7 @@ const Register = () => {
             console.log('Пользователь сохранен на бэкенде:', savedUser)
             userData.id = savedUser.id // Используем ID с бэкенда
             userData = { ...userData, ...savedUser }
+            savedOnBackend = true
           } else {
             const errorData = await response.json().catch(() => ({}))
             if (response.status === 409) {
@@ -134,6 +136,23 @@ const Register = () => {
         } catch (error) {
           console.error('Ошибка при сохранении на бэкенде:', error)
           // Продолжаем с локальными данными
+        }
+      }
+      
+      // Если не удалось сохранить на бэкенде, проверяем localStorage на дубликаты
+      if (!savedOnBackend) {
+        const savedUser = localStorage.getItem('user')
+        if (savedUser) {
+          try {
+            const existingUser = JSON.parse(savedUser)
+            if (existingUser.email && existingUser.email.toLowerCase().trim() === userData.email) {
+              setError('Пользователь с таким email уже существует')
+              setIsLoading(false)
+              return
+            }
+          } catch (parseError) {
+            console.error('Ошибка проверки localStorage:', parseError)
+          }
         }
       }
       

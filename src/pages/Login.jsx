@@ -33,80 +33,82 @@ const Login = () => {
     console.log('Пароль из формы:', formData.password)
 
     try {
-      // Проверяем зарегистрированных пользователей в localStorage
-      const savedUser = localStorage.getItem('user')
-      console.log('Сохраненный пользователь (сырой JSON):', savedUser)
-      
+      const API_BASE_URL = import.meta.env.VITE_API_URL || ''
       let userData = null
-      
-      if (savedUser) {
+
+      // Пытаемся войти через бэкенд
+      if (API_BASE_URL) {
         try {
-          const user = JSON.parse(savedUser)
-          console.log('Парсированный пользователь:', user)
-          console.log('Email пользователя из localStorage:', user.email)
-          console.log('Пароль пользователя из localStorage:', user.password)
-          
-          // Нормализуем email для сравнения (приводим к нижнему регистру)
-          const normalizedUserEmail = user.email ? user.email.toLowerCase().trim() : ''
-          const normalizedFormEmail = formData.email.toLowerCase().trim()
-          
-          console.log('Нормализованный email пользователя:', normalizedUserEmail)
-          console.log('Нормализованный email из формы:', normalizedFormEmail)
-          console.log('Сравнение email:', normalizedUserEmail === normalizedFormEmail)
-          console.log('Сравнение пароля:', user.password === formData.password)
-          
-          // Проверяем email и пароль
-          if (normalizedUserEmail === normalizedFormEmail && user.password === formData.password) {
-            userData = user
-            console.log('✅ Пользователь найден в localStorage - вход выполнен!')
+          console.log('Попытка входа через бэкенд...')
+          const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password
+            })
+          })
+
+          if (response.ok) {
+            userData = await response.json()
+            console.log('✅ Вход через бэкенд успешен:', userData)
+            // Добавляем пароль для локального хранения
+            userData.password = formData.password
+          } else if (response.status === 401) {
+            console.log('❌ Неверный email или пароль (бэкенд)')
+            setError('Неверный email или пароль')
+            setIsLoading(false)
+            return
           } else {
-            console.log('❌ Пользователь не найден:')
-            console.log('  - Email совпадает?', normalizedUserEmail === normalizedFormEmail)
-            console.log('  - Пароль совпадает?', user.password === formData.password)
+            console.warn('Ошибка бэкенда при входе:', response.status)
+            // Продолжаем с локальными данными
           }
-        } catch (parseError) {
-          console.error('❌ Ошибка парсинга пользователя из localStorage:', parseError)
+        } catch (error) {
+          console.error('Ошибка при входе через бэкенд:', error)
+          // Продолжаем с локальными данными
         }
-      } else {
-        console.log('⚠️ В localStorage нет сохраненного пользователя')
       }
-      
-      // Если пользователь не найден, проверяем моковые данные
+
+      // Если бэкенд недоступен или не вернул пользователя, проверяем localStorage
       if (!userData) {
-        if (formData.email === 'client@example.com' && formData.password === 'password') {
-          userData = {
-            id: 1,
-            name: 'Анна Смирнова',
-            email: formData.email,
-            role: 'client'
+        console.log('Проверка localStorage...')
+        const savedUser = localStorage.getItem('user')
+        
+        if (savedUser) {
+          try {
+            const user = JSON.parse(savedUser)
+            const normalizedUserEmail = user.email ? user.email.toLowerCase().trim() : ''
+            const normalizedFormEmail = formData.email.toLowerCase().trim()
+            
+            if (normalizedUserEmail === normalizedFormEmail && user.password === formData.password) {
+              userData = user
+              console.log('✅ Пользователь найден в localStorage')
+            }
+          } catch (parseError) {
+            console.error('Ошибка парсинга пользователя из localStorage:', parseError)
           }
-        } else if (formData.email === 'astrologer@example.com' && formData.password === 'password') {
-          userData = {
-            id: 2,
-            name: 'Елена Петрова',
-            email: formData.email,
-            role: 'astrologer'
-          }
-        } else if (formData.email === 'l@test.com' && formData.password === 'astro2') {
-          userData = {
-            id: 3,
-            name: 'Лена',
-            email: formData.email,
-            role: 'astrologer'
-          }
-        } else if (formData.email === 'lusa@test.com' && formData.password === 'astro26') {
-          userData = {
-            id: 4,
-            name: 'Люся',
-            email: formData.email,
-            role: 'astrologer'
-          }
-        } else if (formData.email === 'lida@test.com' && formData.password === 'password') {
-          userData = {
-            id: 5,
-            name: 'Лида',
-            email: formData.email,
-            role: 'astrologer'
+        }
+
+        // Если пользователь не найден, проверяем моковые данные
+        if (!userData) {
+          const mockUsers = [
+            { email: 'client@example.com', password: 'password', name: 'Анна Смирнова', id: 1, role: 'client' },
+            { email: 'astrologer@example.com', password: 'password', name: 'Елена Петрова', id: 2, role: 'astrologer' },
+            { email: 'l@test.com', password: 'astro2', name: 'Лена', id: 3, role: 'astrologer' },
+            { email: 'lusa@test.com', password: 'astro26', name: 'Люся', id: 4, role: 'astrologer' },
+            { email: 'lida@test.com', password: 'password', name: 'Лида', id: 5, role: 'astrologer' }
+          ]
+
+          const normalizedFormEmail = formData.email.toLowerCase().trim()
+          const mockUser = mockUsers.find(u => 
+            u.email.toLowerCase().trim() === normalizedFormEmail && u.password === formData.password
+          )
+          
+          if (mockUser) {
+            userData = mockUser
+            console.log('✅ Моковый пользователь найден')
           }
         }
       }

@@ -57,9 +57,58 @@ const ForgotPassword = () => {
 
     try {
       const normalizedEmail = email.toLowerCase().trim()
-      let userFound = false
+      const API_BASE_URL = import.meta.env.VITE_API_URL || ''
       let generatedPassword = ''
       let userToUpdate = null
+
+      // Пытаемся восстановить пароль через бэкенд
+      if (API_BASE_URL) {
+        try {
+          console.log('Попытка восстановления пароля через бэкенд...')
+          const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: normalizedEmail })
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            generatedPassword = result.newPassword
+            console.log('✅ Пароль восстановлен через бэкенд')
+            
+            // Получаем данные пользователя для обновления localStorage
+            const usersResponse = await fetch(`${API_BASE_URL}/api/users?email=${encodeURIComponent(normalizedEmail)}`)
+            if (usersResponse.ok) {
+              const users = await usersResponse.json()
+              if (users.length > 0) {
+                userToUpdate = { ...users[0], password: generatedPassword }
+                localStorage.setItem('user', JSON.stringify(userToUpdate))
+              }
+            }
+            
+            setNewPassword(generatedPassword)
+            setSuccess(true)
+            setIsLoading(false)
+            return
+          } else if (response.status === 404) {
+            const errorData = await response.json().catch(() => ({}))
+            setError(errorData.error || 'Пользователь с таким email не найден. Проверьте правильность введенного email.')
+            setIsLoading(false)
+            return
+          } else {
+            console.warn('Ошибка бэкенда при восстановлении пароля:', response.status)
+            // Продолжаем с локальными данными
+          }
+        } catch (error) {
+          console.error('Ошибка при восстановлении пароля через бэкенд:', error)
+          // Продолжаем с локальными данными
+        }
+      }
+
+      // Если бэкенд недоступен, используем localStorage и моковые данные
+      let userFound = false
 
       // Проверяем пользователя в localStorage
       const savedUser = localStorage.getItem('user')

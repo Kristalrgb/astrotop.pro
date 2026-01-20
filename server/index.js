@@ -803,6 +803,79 @@ app.get('/api/astrologers', (req, res) => {
   res.json(specialists)
 })
 
+// API для входа (авторизации)
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email и пароль обязательны' })
+  }
+
+  const users = readUsers()
+  const normalizedEmail = email.toLowerCase().trim()
+  
+  const user = users.find(u => u.email.toLowerCase().trim() === normalizedEmail && u.password === password)
+
+  if (!user) {
+    return res.status(401).json({ error: 'Неверный email или пароль' })
+  }
+
+  // Удаляем пароль из ответа
+  const { password: _, ...userResponse } = user
+  res.json(userResponse)
+})
+
+// API для восстановления пароля
+app.post('/api/auth/forgot-password', (req, res) => {
+  const { email } = req.body
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email обязателен' })
+  }
+
+  const users = readUsers()
+  const normalizedEmail = email.toLowerCase().trim()
+  
+  const user = users.find(u => u.email.toLowerCase().trim() === normalizedEmail)
+
+  if (!user) {
+    return res.status(404).json({ error: 'Пользователь с таким email не найден' })
+  }
+
+  // Генерируем новый пароль
+  const generatePassword = () => {
+    const length = 12
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let password = ''
+    password += charset.charAt(Math.floor(Math.random() * 26))
+    password += charset.charAt(26 + Math.floor(Math.random() * 26))
+    password += charset.charAt(52 + Math.floor(Math.random() * 10))
+    
+    for (let i = password.length; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    }
+    
+    return password.split('').sort(() => Math.random() - 0.5).join('')
+  }
+
+  const newPassword = generatePassword()
+
+  // Обновляем пароль пользователя
+  const userIndex = users.findIndex(u => u.id === user.id)
+  if (userIndex !== -1) {
+    users[userIndex].password = newPassword
+    users[userIndex].updatedAt = new Date().toISOString()
+    writeUsers(users)
+  }
+
+  // Возвращаем новый пароль (в продакшене нужно отправить на email)
+  res.json({ 
+    success: true, 
+    newPassword: newPassword,
+    message: 'Новый пароль сгенерирован. В продакшене он будет отправлен на email.'
+  })
+})
+
 // Обработка всех остальных маршрутов для SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'))
