@@ -61,7 +61,9 @@ app.use((req, res, next) => {
 })
 
 // Локальное хранилище новостей
-const NEWS_DIR = path.join(__dirname, 'data')
+// Используем Railway Volume, если он доступен, иначе локальную папку
+const DATA_BASE_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.DATA_DIR || path.join(__dirname, 'data')
+const NEWS_DIR = path.join(DATA_BASE_DIR, 'news')
 const NEWS_FILE = path.join(NEWS_DIR, 'news.json')
 
 const ensureNewsStorage = () => {
@@ -93,7 +95,7 @@ const generatePostId = () => `${Date.now().toString(36)}-${Math.random().toStrin
 ensureNewsStorage()
 
 // Хранение бронирований
-const BOOKINGS_DIR = path.join(__dirname, 'data')
+const BOOKINGS_DIR = path.join(DATA_BASE_DIR, 'bookings')
 const BOOKINGS_FILE = path.join(BOOKINGS_DIR, 'bookings.json')
 
 const ensureBookingsStorage = () => {
@@ -123,7 +125,7 @@ const writeBookings = (bookings) => {
 ensureBookingsStorage()
 
 // Хранение пользователей
-const USERS_DIR = path.join(__dirname, 'data')
+const USERS_DIR = path.join(DATA_BASE_DIR, 'users')
 const USERS_FILE = path.join(USERS_DIR, 'users.json')
 
 const ensureUsersStorage = () => {
