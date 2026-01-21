@@ -67,11 +67,19 @@ const NEWS_DIR = path.join(DATA_BASE_DIR, 'news')
 const NEWS_FILE = path.join(NEWS_DIR, 'news.json')
 
 const ensureNewsStorage = () => {
-  if (!fs.existsSync(NEWS_DIR)) {
-    fs.mkdirSync(NEWS_DIR, { recursive: true })
-  }
-  if (!fs.existsSync(NEWS_FILE)) {
-    fs.writeFileSync(NEWS_FILE, JSON.stringify([]))
+  try {
+    if (!fs.existsSync(NEWS_DIR)) {
+      fs.mkdirSync(NEWS_DIR, { recursive: true })
+      console.log(`✅ Создана папка для новостей: ${NEWS_DIR}`)
+    }
+    if (!fs.existsSync(NEWS_FILE)) {
+      fs.writeFileSync(NEWS_FILE, JSON.stringify([]))
+      console.log(`✅ Создан файл новостей: ${NEWS_FILE}`)
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при создании хранилища новостей:', error)
+    console.error('⚠️ Продолжаем работу без постоянного хранилища (данные будут теряться при перезапуске)')
+    // Не бросаем ошибку, чтобы сервер мог запуститься
   }
 }
 
@@ -99,11 +107,19 @@ const BOOKINGS_DIR = path.join(DATA_BASE_DIR, 'bookings')
 const BOOKINGS_FILE = path.join(BOOKINGS_DIR, 'bookings.json')
 
 const ensureBookingsStorage = () => {
-  if (!fs.existsSync(BOOKINGS_DIR)) {
-    fs.mkdirSync(BOOKINGS_DIR, { recursive: true })
-  }
-  if (!fs.existsSync(BOOKINGS_FILE)) {
-    fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([]))
+  try {
+    if (!fs.existsSync(BOOKINGS_DIR)) {
+      fs.mkdirSync(BOOKINGS_DIR, { recursive: true })
+      console.log(`✅ Создана папка для бронирований: ${BOOKINGS_DIR}`)
+    }
+    if (!fs.existsSync(BOOKINGS_FILE)) {
+      fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([]))
+      console.log(`✅ Создан файл бронирований: ${BOOKINGS_FILE}`)
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при создании хранилища бронирований:', error)
+    console.error('⚠️ Продолжаем работу без постоянного хранилища (данные будут теряться при перезапуске)')
+    // Не бросаем ошибку, чтобы сервер мог запуститься
   }
 }
 
@@ -129,11 +145,19 @@ const USERS_DIR = path.join(DATA_BASE_DIR, 'users')
 const USERS_FILE = path.join(USERS_DIR, 'users.json')
 
 const ensureUsersStorage = () => {
-  if (!fs.existsSync(USERS_DIR)) {
-    fs.mkdirSync(USERS_DIR, { recursive: true })
-  }
-  if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify([]))
+  try {
+    if (!fs.existsSync(USERS_DIR)) {
+      fs.mkdirSync(USERS_DIR, { recursive: true })
+      console.log(`✅ Создана папка для пользователей: ${USERS_DIR}`)
+    }
+    if (!fs.existsSync(USERS_FILE)) {
+      fs.writeFileSync(USERS_FILE, JSON.stringify([]))
+      console.log(`✅ Создан файл пользователей: ${USERS_FILE}`)
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при создании хранилища пользователей:', error)
+    console.error('⚠️ Продолжаем работу без постоянного хранилища (данные будут теряться при перезапуске)')
+    // Не бросаем ошибку, чтобы сервер мог запуститься
   }
 }
 
@@ -914,7 +938,23 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000
 
+// Обработка ошибок при запуске
+process.on('uncaughtException', (error) => {
+  console.error('❌ Необработанная ошибка:', error)
+  console.error('Stack:', error.stack)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Необработанное отклонение промиса:', reason)
+  console.error('Promise:', promise)
+})
+
 server.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`)
-  console.log(`WebSocket сервер доступен на ws://localhost:${PORT}`)
+  console.log(`✅ Сервер запущен на порту ${PORT}`)
+  console.log(`✅ WebSocket сервер доступен на ws://localhost:${PORT}`)
+  console.log(`✅ DATA_BASE_DIR: ${DATA_BASE_DIR}`)
+  console.log(`✅ NODE_ENV: ${process.env.NODE_ENV || 'development'}`)
+}).on('error', (error) => {
+  console.error('❌ Ошибка при запуске сервера:', error)
+  process.exit(1)
 })
