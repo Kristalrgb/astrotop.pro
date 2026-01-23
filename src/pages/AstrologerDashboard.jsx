@@ -1385,14 +1385,14 @@ const AstrologerDashboard = () => {
             </div>
             
             {consultation.status === 'pending' && (
-              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
                 <button 
                   className="btn btn-primary" 
                   style={{ background: '#28a745', borderColor: '#28a745' }}
                   onClick={() => handleConfirmBooking(consultation.id)}
                 >
                   <FaCheck style={{ marginRight: '8px' }} />
-                  Подтвердить запрос
+                  Принять
                 </button>
                 <button 
                   className="btn btn-secondary"
@@ -1406,13 +1406,21 @@ const AstrologerDashboard = () => {
             )}
             
             {consultation.status === 'upcoming' && (
-              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
                 <button className="btn btn-primary" style={{ background: '#6c757d', borderColor: '#6c757d' }}>
                   <FaVideo style={{ marginRight: '8px' }} />
                   Начать консультацию
                 </button>
-                <button className="btn btn-secondary">
+                <button className="btn btn-secondary" style={{ border: '1px solid #667eea', color: '#667eea', background: 'transparent' }}>
                   Перенести
+                </button>
+                <button 
+                  className="btn btn-secondary"
+                  style={{ border: '1px solid #dc3545', color: '#dc3545', background: 'transparent' }}
+                  onClick={() => handleCancelBooking(consultation.id)}
+                >
+                  <FaBan style={{ marginRight: '8px' }} />
+                  Отменить
                 </button>
               </div>
             )}
