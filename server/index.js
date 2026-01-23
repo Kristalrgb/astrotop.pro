@@ -5,6 +5,7 @@ const cors = require('cors')
 const path = require('path')
 const fs = require('fs')
 const translate = require('@vitalets/google-translate-api')
+const { Pool } = require('pg')
 
 const app = express()
 const server = http.createServer(app)
@@ -60,7 +61,94 @@ app.use((req, res, next) => {
   next()
 })
 
-// Локальное хранилище новостей
+// Подключение к PostgreSQL (если доступно)
+let db = null
+const usePostgreSQL = !!process.env.DATABASE_URL
+
+if (usePostgreSQL) {
+  try {
+    db = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL?.includes('railway') ? { rejectUnauthorized: false } : false
+    })
+    console.log('✅ Подключение к PostgreSQL установлено')
+  } catch (error) {
+    console.error('❌ Ошибка подключения к PostgreSQL:', error)
+    db = null
+  }
+} else {
+  console.log('⚠️ DATABASE_URL не найден, используется файловое хранилище')
+}
+
+// Инициализация таблиц PostgreSQL
+const initDatabase = async () => {
+  if (!db) return
+
+  try {
+    // Таблица пользователей
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'client',
+        phone TEXT,
+        avatar TEXT,
+        bio TEXT,
+        specialties TEXT[],
+        rating REAL DEFAULT 0,
+        reviews_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Таблица новостей
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS news (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        image TEXT,
+        author_id TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Таблица бронирований
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL,
+        client_name TEXT NOT NULL,
+        client_email TEXT NOT NULL,
+        client_phone TEXT NOT NULL,
+        specialist_id TEXT NOT NULL,
+        specialist_name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        reminder_sent BOOLEAN DEFAULT FALSE,
+        reminder_sent_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    console.log('✅ Таблицы PostgreSQL созданы/проверены')
+  } catch (error) {
+    console.error('❌ Ошибка создания таблиц PostgreSQL:', error)
+  }
+}
+
+if (db) {
+  initDatabase().catch(console.error)
+}
+
+// Локальное хранилище новостей (fallback)
 // Используем Railway Volume, если он доступен, иначе локальную папку
 const DATA_BASE_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.DATA_DIR || path.join(__dirname, 'data')
 const NEWS_DIR = path.join(DATA_BASE_DIR, 'news')
@@ -83,7 +171,29 @@ const ensureNewsStorage = () => {
   }
 }
 
-const readNews = () => {
+const readNews = async () => {
+  if (db) {
+    try {
+      const result = await db.query('SELECT * FROM news ORDER BY created_at DESC')
+      return result.rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        imageUrl: row.image || '',
+        image: row.image || '',
+        authorId: row.author_id,
+        authorName: row.author_name,
+        authorAvatar: '',
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+    } catch (error) {
+      console.error('Ошибка чтения новостей из PostgreSQL:', error)
+      return []
+    }
+  }
+
+  // Fallback на файловое хранилище
   try {
     const raw = fs.readFileSync(NEWS_FILE, 'utf-8')
     const parsed = JSON.parse(raw)
@@ -94,7 +204,26 @@ const readNews = () => {
   }
 }
 
-const writeNews = (news) => {
+const writeNews = async (news) => {
+  if (db) {
+    try {
+      // Удаляем все существующие новости
+      await db.query('DELETE FROM news')
+      // Вставляем новые
+      for (const item of news) {
+        await db.query(
+          'INSERT INTO news (id, title, content, image, author_id, author_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [item.id, item.title, item.content, item.image || null, item.authorId, item.authorName, item.createdAt || new Date(), item.updatedAt || new Date()]
+        )
+      }
+      return
+    } catch (error) {
+      console.error('Ошибка записи новостей в PostgreSQL:', error)
+      // Fallback на файловое хранилище
+    }
+  }
+
+  // Fallback на файловое хранилище
   fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2))
 }
 
@@ -123,7 +252,33 @@ const ensureBookingsStorage = () => {
   }
 }
 
-const readBookings = () => {
+const readBookings = async () => {
+  if (db) {
+    try {
+      const result = await db.query('SELECT * FROM bookings ORDER BY created_at DESC')
+      return result.rows.map(row => ({
+        id: row.id,
+        clientId: row.client_id,
+        clientName: row.client_name,
+        clientEmail: row.client_email,
+        clientPhone: row.client_phone,
+        specialistId: row.specialist_id,
+        specialistName: row.specialist_name,
+        date: row.date,
+        time: row.time,
+        status: row.status,
+        reminderSent: row.reminder_sent,
+        reminderSentAt: row.reminder_sent_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+    } catch (error) {
+      console.error('Ошибка чтения бронирований из PostgreSQL:', error)
+      return []
+    }
+  }
+
+  // Fallback на файловое хранилище
   try {
     const raw = fs.readFileSync(BOOKINGS_FILE, 'utf-8')
     const parsed = JSON.parse(raw)
@@ -134,7 +289,41 @@ const readBookings = () => {
   }
 }
 
-const writeBookings = (bookings) => {
+const writeBookings = async (bookings) => {
+  if (db) {
+    try {
+      // Удаляем все бронирования
+      await db.query('DELETE FROM bookings')
+      // Вставляем новые
+      for (const booking of bookings) {
+        await db.query(
+          'INSERT INTO bookings (id, client_id, client_name, client_email, client_phone, specialist_id, specialist_name, date, time, status, reminder_sent, reminder_sent_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
+          [
+            booking.id,
+            booking.clientId,
+            booking.clientName,
+            booking.clientEmail,
+            booking.clientPhone,
+            booking.specialistId,
+            booking.specialistName,
+            booking.date,
+            booking.time,
+            booking.status || 'pending',
+            booking.reminderSent || false,
+            booking.reminderSentAt || null,
+            booking.createdAt || new Date(),
+            booking.updatedAt || new Date()
+          ]
+        )
+      }
+      return
+    } catch (error) {
+      console.error('Ошибка записи бронирований в PostgreSQL:', error)
+      // Fallback на файловое хранилище
+    }
+  }
+
+  // Fallback на файловое хранилище
   fs.writeFileSync(BOOKINGS_FILE, JSON.stringify(bookings, null, 2))
 }
 
@@ -161,7 +350,32 @@ const ensureUsersStorage = () => {
   }
 }
 
-const readUsers = () => {
+const readUsers = async () => {
+  if (db) {
+    try {
+      const result = await db.query('SELECT * FROM users ORDER BY created_at DESC')
+      return result.rows.map(row => ({
+        id: row.id,
+        email: row.email,
+        password: row.password,
+        name: row.name,
+        role: row.role,
+        phone: row.phone,
+        avatar: row.avatar,
+        bio: row.bio,
+        specialties: row.specialties || [],
+        rating: row.rating,
+        reviewsCount: row.reviews_count,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+    } catch (error) {
+      console.error('Ошибка чтения пользователей из PostgreSQL:', error)
+      return []
+    }
+  }
+
+  // Fallback на файловое хранилище
   try {
     const raw = fs.readFileSync(USERS_FILE, 'utf-8')
     const parsed = JSON.parse(raw)
@@ -172,7 +386,40 @@ const readUsers = () => {
   }
 }
 
-const writeUsers = (users) => {
+const writeUsers = async (users) => {
+  if (db) {
+    try {
+      // Удаляем всех пользователей
+      await db.query('DELETE FROM users')
+      // Вставляем новых
+      for (const user of users) {
+        await db.query(
+          'INSERT INTO users (id, email, password, name, role, phone, avatar, bio, specialties, rating, reviews_count, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+          [
+            user.id,
+            user.email,
+            user.password,
+            user.name,
+            user.role || 'client',
+            user.phone || null,
+            user.avatar || null,
+            user.bio || null,
+            user.specialties || [],
+            user.rating || 0,
+            user.reviewsCount || 0,
+            user.createdAt || new Date(),
+            user.updatedAt || new Date()
+          ]
+        )
+      }
+      return
+    } catch (error) {
+      console.error('Ошибка записи пользователей в PostgreSQL:', error)
+      // Fallback на файловое хранилище
+    }
+  }
+
+  // Fallback на файловое хранилище
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
 }
 
@@ -194,7 +441,7 @@ const sendSMSReminder = async (phoneNumber, bookingData) => {
 
 // Проверка и отправка напоминаний (запускается периодически)
 const checkAndSendReminders = async () => {
-  const bookings = readBookings()
+  const bookings = await readBookings()
   const now = new Date()
   const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000) // +24 часа
   
@@ -212,11 +459,11 @@ const checkAndSendReminders = async () => {
     if (hoursUntilBooking >= 23 && hoursUntilBooking <= 25) {
       // Отправляем напоминание
       sendSMSReminder(booking.phoneNumber, booking)
-        .then(() => {
+        .then(async () => {
           // Отмечаем, что напоминание отправлено
           booking.reminderSent = true
           booking.reminderSentAt = new Date().toISOString()
-          writeBookings(bookings)
+          await writeBookings(bookings)
           console.log(`✅ Напоминание отправлено для бронирования ${booking.id}`)
         })
         .catch(error => {
@@ -489,103 +736,128 @@ io.on('connection', (socket) => {
 })
 
 // API маршруты
-app.get('/api/news', (req, res) => {
-  const news = readNews()
-  const sorted = news.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  res.json(sorted)
+app.get('/api/news', async (req, res) => {
+  try {
+    const news = await readNews()
+    const sorted = news.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    res.json(sorted)
+  } catch (error) {
+    console.error('Ошибка получения новостей:', error)
+    res.status(500).json({ error: 'Ошибка получения новостей' })
+  }
 })
 
-app.get('/api/news/:id', (req, res) => {
-  const news = readNews()
-  const post = news.find(item => item.id === req.params.id)
-  if (!post) {
-    return res.status(404).json({ error: 'Публикация не найдена' })
+app.get('/api/news/:id', async (req, res) => {
+  try {
+    const news = await readNews()
+    const post = news.find(item => item.id === req.params.id)
+    if (!post) {
+      return res.status(404).json({ error: 'Публикация не найдена' })
+    }
+    res.json(post)
+  } catch (error) {
+    console.error('Ошибка получения новости:', error)
+    res.status(500).json({ error: 'Ошибка получения новости' })
   }
-  res.json(post)
 })
 
-app.post('/api/news', (req, res) => {
-  const { title, content, imageUrl, authorId, authorName, authorAvatar } = req.body
+app.post('/api/news', async (req, res) => {
+  try {
+    const { title, content, imageUrl, authorId, authorName, authorAvatar } = req.body
 
-  if (!title?.trim() || !content?.trim()) {
-    return res.status(400).json({ error: 'Заполните заголовок и текст новости' })
+    if (!title?.trim() || !content?.trim()) {
+      return res.status(400).json({ error: 'Заполните заголовок и текст новости' })
+    }
+
+    if (!authorId || !authorName) {
+      return res.status(400).json({ error: 'Требуются данные автора' })
+    }
+
+    const news = await readNews()
+    const timestamp = new Date().toISOString()
+    const newPost = {
+      id: generatePostId(),
+      title: title.trim(),
+      content: content.trim(),
+      imageUrl: imageUrl?.trim() || '',
+      authorId: String(authorId),
+      authorName: authorName.trim(),
+      authorAvatar: authorAvatar || '',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    }
+
+    news.push(newPost)
+    await writeNews(news)
+
+    res.status(201).json(newPost)
+  } catch (error) {
+    console.error('Ошибка создания новости:', error)
+    res.status(500).json({ error: 'Ошибка создания новости' })
   }
-
-  if (!authorId || !authorName) {
-    return res.status(400).json({ error: 'Требуются данные автора' })
-  }
-
-  const news = readNews()
-  const timestamp = new Date().toISOString()
-  const newPost = {
-    id: generatePostId(),
-    title: title.trim(),
-    content: content.trim(),
-    imageUrl: imageUrl?.trim() || '',
-    authorId: String(authorId),
-    authorName: authorName.trim(),
-    authorAvatar: authorAvatar || '',
-    createdAt: timestamp,
-    updatedAt: timestamp
-  }
-
-  news.push(newPost)
-  writeNews(news)
-
-  res.status(201).json(newPost)
 })
 
-app.put('/api/news/:id', (req, res) => {
-  const { title, content, imageUrl, authorId } = req.body
-  if (!authorId) {
-    return res.status(400).json({ error: 'authorId обязателен' })
-  }
+app.put('/api/news/:id', async (req, res) => {
+  try {
+    const { title, content, imageUrl, authorId } = req.body
+    if (!authorId) {
+      return res.status(400).json({ error: 'authorId обязателен' })
+    }
 
-  const news = readNews()
-  const index = news.findIndex(item => item.id === req.params.id)
-  if (index === -1) {
-    return res.status(404).json({ error: 'Публикация не найдена' })
-  }
+    const news = await readNews()
+    const index = news.findIndex(item => item.id === req.params.id)
+    if (index === -1) {
+      return res.status(404).json({ error: 'Публикация не найдена' })
+    }
 
-  if (String(news[index].authorId) !== String(authorId)) {
-    return res.status(403).json({ error: 'Можно редактировать только собственные публикации' })
-  }
+    if (String(news[index].authorId) !== String(authorId)) {
+      return res.status(403).json({ error: 'Можно редактировать только собственные публикации' })
+    }
 
-  if (!title?.trim() || !content?.trim()) {
-    return res.status(400).json({ error: 'Заполните заголовок и текст новости' })
-  }
+    if (!title?.trim() || !content?.trim()) {
+      return res.status(400).json({ error: 'Заполните заголовок и текст новости' })
+    }
 
-  news[index] = {
-    ...news[index],
-    title: title.trim(),
-    content: content.trim(),
-    imageUrl: imageUrl?.trim() || '',
-    updatedAt: new Date().toISOString()
-  }
+    news[index] = {
+      ...news[index],
+      title: title.trim(),
+      content: content.trim(),
+      imageUrl: imageUrl?.trim() || '',
+      updatedAt: new Date().toISOString()
+    }
 
-  writeNews(news)
-  res.json(news[index])
+    await writeNews(news)
+    res.json(news[index])
+  } catch (error) {
+    console.error('Ошибка обновления новости:', error)
+    res.status(500).json({ error: 'Ошибка обновления новости' })
+  }
 })
 
-app.delete('/api/news/:id', (req, res) => {
-  const { authorId } = req.query
-  if (!authorId) {
-    return res.status(400).json({ error: 'authorId обязателен' })
-  }
+app.delete('/api/news/:id', async (req, res) => {
+  try {
+    const { authorId } = req.query
+    if (!authorId) {
+      return res.status(400).json({ error: 'authorId обязателен' })
+    }
 
-  const news = readNews()
-  const index = news.findIndex(item => item.id === req.params.id)
-  if (index === -1) {
-    return res.status(404).json({ error: 'Публикация не найдена' })
-  }
+    const news = await readNews()
+    const index = news.findIndex(item => item.id === req.params.id)
+    if (index === -1) {
+      return res.status(404).json({ error: 'Публикация не найдена' })
+    }
 
-  if (String(news[index].authorId) !== String(authorId)) {
-    return res.status(403).json({ error: 'Можно удалять только собственные публикации' })
-  }
+    if (String(news[index].authorId) !== String(authorId)) {
+      return res.status(403).json({ error: 'Можно удалять только собственные публикации' })
+    }
 
-  const [removed] = news.splice(index, 1)
-  writeNews(news)
-  res.json({ success: true, id: removed.id })
+    const [removed] = news.splice(index, 1)
+    await writeNews(news)
+    res.json({ success: true, id: removed.id })
+  } catch (error) {
+    console.error('Ошибка удаления новости:', error)
+    res.status(500).json({ error: 'Ошибка удаления новости' })
+  }
 })
 
 app.get('/api/sessions/:sessionId', (req, res) => {
@@ -626,302 +898,400 @@ app.get('/api/languages', (req, res) => {
 })
 
 // API для бронирований
-app.post('/api/bookings', (req, res) => {
-  const bookingData = req.body
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const bookingData = req.body
 
-  if (!bookingData.specialistId || !bookingData.clientId || !bookingData.date || !bookingData.time) {
-    console.log('❌ ОШИБКА БРОНИРОВАНИЯ: Не все обязательные поля заполнены')
-    return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
+    if (!bookingData.specialistId || !bookingData.clientId || !bookingData.date || !bookingData.time) {
+      console.log('❌ ОШИБКА БРОНИРОВАНИЯ: Не все обязательные поля заполнены')
+      return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
+    }
+
+    const bookings = await readBookings()
+    const newBooking = {
+      id: `booking-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ...bookingData,
+      createdAt: new Date().toISOString(),
+      reminderSent: false
+    }
+
+    bookings.push(newBooking)
+    await writeBookings(bookings)
+
+    // Логируем успешное бронирование
+    console.log(`✅ БРОНИРОВАНИЕ СОЗДАНО: Клиент ${bookingData.clientName} → Астролог ID: ${bookingData.specialistId}, Дата: ${bookingData.date} ${bookingData.time}`)
+    console.log(`📊 Всего бронирований: ${bookings.length}`)
+
+    // Планируем проверку напоминания для этого бронирования
+    setTimeout(() => checkAndSendReminders(), 1000)
+
+    res.status(201).json(newBooking)
+  } catch (error) {
+    console.error('Ошибка создания бронирования:', error)
+    res.status(500).json({ error: 'Ошибка создания бронирования' })
   }
-
-  const bookings = readBookings()
-  const newBooking = {
-    id: `booking-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    ...bookingData,
-    createdAt: new Date().toISOString(),
-    reminderSent: false
-  }
-
-  bookings.push(newBooking)
-  writeBookings(bookings)
-
-  // Логируем успешное бронирование
-  console.log(`✅ БРОНИРОВАНИЕ СОЗДАНО: Клиент ${bookingData.clientName} → Астролог ID: ${bookingData.specialistId}, Дата: ${bookingData.date} ${bookingData.time}`)
-  console.log(`📊 Всего бронирований: ${bookings.length}`)
-
-  // Планируем проверку напоминания для этого бронирования
-  setTimeout(() => checkAndSendReminders(), 1000)
-
-  res.status(201).json(newBooking)
 })
 
-app.get('/api/bookings', (req, res) => {
-  const { clientId, specialistId } = req.query
-  let bookings = readBookings()
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const { clientId, specialistId } = req.query
+    let bookings = await readBookings()
 
-  if (clientId) {
-    bookings = bookings.filter(b => b.clientId === clientId)
+    if (clientId) {
+      bookings = bookings.filter(b => b.clientId === clientId)
+    }
+
+    if (specialistId) {
+      bookings = bookings.filter(b => b.specialistId === specialistId)
+    }
+
+    res.json(bookings.sort((a, b) => new Date(a.date) - new Date(b.date)))
+  } catch (error) {
+    console.error('Ошибка получения бронирований:', error)
+    res.status(500).json({ error: 'Ошибка получения бронирований' })
   }
-
-  if (specialistId) {
-    bookings = bookings.filter(b => b.specialistId === specialistId)
-  }
-
-  res.json(bookings.sort((a, b) => new Date(a.date) - new Date(b.date)))
 })
 
-app.get('/api/bookings/:id', (req, res) => {
-  const bookings = readBookings()
-  const booking = bookings.find(b => b.id === req.params.id)
+app.get('/api/bookings/:id', async (req, res) => {
+  try {
+    const bookings = await readBookings()
+    const booking = bookings.find(b => b.id === req.params.id)
 
-  if (!booking) {
-    return res.status(404).json({ error: 'Бронирование не найдено' })
+    if (!booking) {
+      return res.status(404).json({ error: 'Бронирование не найдено' })
+    }
+
+    res.json(booking)
+  } catch (error) {
+    console.error('Ошибка получения бронирования:', error)
+    res.status(500).json({ error: 'Ошибка получения бронирования' })
   }
+})
 
-  res.json(booking)
+// API для подтверждения бронирования
+app.put('/api/bookings/:id/confirm', async (req, res) => {
+  try {
+    const bookings = await readBookings()
+    const bookingIndex = bookings.findIndex(b => b.id === req.params.id)
+
+    if (bookingIndex === -1) {
+      return res.status(404).json({ error: 'Бронирование не найдено' })
+    }
+
+    bookings[bookingIndex].status = 'confirmed'
+    bookings[bookingIndex].updatedAt = new Date().toISOString()
+    await writeBookings(bookings)
+    
+    console.log(`✅ БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО: ${bookings[bookingIndex].id}`)
+    res.json({ success: true, booking: bookings[bookingIndex] })
+  } catch (error) {
+    console.error('Ошибка подтверждения бронирования:', error)
+    res.status(500).json({ error: 'Ошибка подтверждения бронирования', details: error.message })
+  }
+})
+
+// API для отмены бронирования
+app.put('/api/bookings/:id/cancel', async (req, res) => {
+  try {
+    const bookings = await readBookings()
+    const bookingIndex = bookings.findIndex(b => b.id === req.params.id)
+
+    if (bookingIndex === -1) {
+      return res.status(404).json({ error: 'Бронирование не найдено' })
+    }
+
+    bookings[bookingIndex].status = 'cancelled'
+    bookings[bookingIndex].updatedAt = new Date().toISOString()
+    await writeBookings(bookings)
+    
+    console.log(`❌ БРОНИРОВАНИЕ ОТМЕНЕНО: ${bookings[bookingIndex].id}`)
+    res.json({ success: true, booking: bookings[bookingIndex] })
+  } catch (error) {
+    console.error('Ошибка отмены бронирования:', error)
+    res.status(500).json({ error: 'Ошибка отмены бронирования', details: error.message })
+  }
 })
 
 // API для ручной отправки напоминаний (для тестирования)
 app.post('/api/bookings/:id/send-reminder', async (req, res) => {
-  const bookings = readBookings()
-  const booking = bookings.find(b => b.id === req.params.id)
-
-  if (!booking) {
-    return res.status(404).json({ error: 'Бронирование не найдено' })
-  }
-
   try {
-    await sendSMSReminder(booking.phoneNumber, booking)
-    booking.reminderSent = true
-    booking.reminderSentAt = new Date().toISOString()
-    writeBookings(bookings)
+    const bookings = await readBookings()
+    const booking = bookings.find(b => b.id === req.params.id)
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Бронирование не найдено' })
+    }
+
+    if (booking.phoneNumber) {
+      await sendSMSReminder(booking.phoneNumber, booking)
+      booking.reminderSent = true
+      booking.reminderSentAt = new Date().toISOString()
+      await writeBookings(bookings)
+    }
     
     res.json({ success: true, message: 'Напоминание отправлено' })
   } catch (error) {
+    console.error('Ошибка отправки напоминания:', error)
     res.status(500).json({ error: 'Ошибка отправки напоминания', details: error.message })
   }
 })
 
 // API для пользователей
-app.post('/api/users', (req, res) => {
-  const { name, email, phone, password, role, profileImage } = req.body
+app.post('/api/users', async (req, res) => {
+  try {
+    const { name, email, phone, password, role, profileImage } = req.body
 
-  if (!name?.trim() || !email?.trim() || !password) {
-    return res.status(400).json({ error: 'Заполните все обязательные поля' })
-  }
+    if (!name?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({ error: 'Заполните все обязательные поля' })
+    }
 
-  const users = readUsers()
-  
-  // Проверяем, не существует ли уже пользователь с таким email
-  const normalizedEmail = email.toLowerCase().trim()
-  const existingUser = users.find(u => u.email.toLowerCase().trim() === normalizedEmail)
-  
-  if (existingUser) {
-    return res.status(409).json({ error: 'Пользователь с таким email уже существует' })
-  }
-
-  const newUser = {
-    id: Date.now().toString(),
-    name: name.trim(),
-    email: normalizedEmail,
-    phone: phone?.trim() || '',
-    password: password, // В продакшене нужно хешировать пароль!
-    role: role || 'client',
-    profileImage: profileImage || '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-
-  users.push(newUser)
-  writeUsers(users)
-
-  // Логируем успешную регистрацию
-  console.log(`✅ ПОЛЬЗОВАТЕЛЬ ЗАРЕГИСТРИРОВАН: ${newUser.name} (${newUser.email}), роль: ${newUser.role}, ID: ${newUser.id}`)
-  console.log(`📊 Всего пользователей: ${users.length}`)
-
-  // Удаляем пароль из ответа
-  const { password: _, ...userResponse } = newUser
-  res.status(201).json(userResponse)
-})
-
-app.get('/api/users', (req, res) => {
-  const { email, role } = req.query
-  let users = readUsers()
-
-  if (email) {
+    const users = await readUsers()
+    
+    // Проверяем, не существует ли уже пользователь с таким email
     const normalizedEmail = email.toLowerCase().trim()
-    users = users.filter(u => u.email.toLowerCase().trim() === normalizedEmail)
-  }
+    const existingUser = users.find(u => u.email.toLowerCase().trim() === normalizedEmail)
+    
+    if (existingUser) {
+      return res.status(409).json({ error: 'Пользователь с таким email уже существует' })
+    }
 
-  if (role) {
-    users = users.filter(u => u.role === role)
-  }
+    const newUser = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      email: normalizedEmail,
+      phone: phone?.trim() || '',
+      password: password, // В продакшене нужно хешировать пароль!
+      role: role || 'client',
+      profileImage: profileImage || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
 
-  // Удаляем пароли из ответа
-  const usersWithoutPasswords = users.map(({ password, ...user }) => user)
-  res.json(usersWithoutPasswords)
+    users.push(newUser)
+    await writeUsers(users)
+
+    // Логируем успешную регистрацию
+    console.log(`✅ ПОЛЬЗОВАТЕЛЬ ЗАРЕГИСТРИРОВАН: ${newUser.name} (${newUser.email}), роль: ${newUser.role}, ID: ${newUser.id}`)
+    console.log(`📊 Всего пользователей: ${users.length}`)
+
+    // Удаляем пароль из ответа
+    const { password: _, ...userResponse } = newUser
+    res.status(201).json(userResponse)
+  } catch (error) {
+    console.error('Ошибка регистрации пользователя:', error)
+    res.status(500).json({ error: 'Ошибка регистрации пользователя' })
+  }
 })
 
-app.get('/api/users/:id', (req, res) => {
-  const users = readUsers()
-  const user = users.find(u => u.id === req.params.id)
+app.get('/api/users', async (req, res) => {
+  try {
+    const { email, role } = req.query
+    let users = await readUsers()
 
-  if (!user) {
-    return res.status(404).json({ error: 'Пользователь не найден' })
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim()
+      users = users.filter(u => u.email.toLowerCase().trim() === normalizedEmail)
+    }
+
+    if (role) {
+      users = users.filter(u => u.role === role)
+    }
+
+    // Удаляем пароли из ответа
+    const usersWithoutPasswords = users.map(({ password, ...user }) => user)
+    res.json(usersWithoutPasswords)
+  } catch (error) {
+    console.error('Ошибка получения пользователей:', error)
+    res.status(500).json({ error: 'Ошибка получения пользователей' })
   }
-
-  // Удаляем пароль из ответа
-  const { password, ...userResponse } = user
-  res.json(userResponse)
 })
 
-app.put('/api/users/:id', (req, res) => {
-  const { name, phone, profileImage, specialty, experience, description, price, languages, services } = req.body
-  const users = readUsers()
-  const index = users.findIndex(u => u.id === req.params.id)
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const users = await readUsers()
+    const user = users.find(u => u.id === req.params.id)
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Пользователь не найден' })
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' })
+    }
+
+    // Удаляем пароль из ответа
+    const { password, ...userResponse } = user
+    res.json(userResponse)
+  } catch (error) {
+    console.error('Ошибка получения пользователя:', error)
+    res.status(500).json({ error: 'Ошибка получения пользователя' })
   }
-
-  const updatedUser = {
-    ...users[index],
-    ...(name && { name: name.trim() }),
-    ...(phone && { phone: phone.trim() }),
-    ...(profileImage && { profileImage }),
-    ...(specialty && { specialty }),
-    ...(experience && { experience }),
-    ...(description && { description }),
-    ...(price && { price }),
-    ...(languages && { languages }),
-    ...(services && { services }),
-    updatedAt: new Date().toISOString()
-  }
-
-  users[index] = updatedUser
-  writeUsers(users)
-
-  // Удаляем пароль из ответа
-  const { password, ...userResponse } = updatedUser
-  res.json(userResponse)
 })
 
-app.delete('/api/users/:id', (req, res) => {
-  const users = readUsers()
-  const index = users.findIndex(u => u.id === req.params.id)
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { name, phone, profileImage, specialty, experience, description, price, languages, services } = req.body
+    const users = await readUsers()
+    const index = users.findIndex(u => u.id === req.params.id)
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Пользователь не найден' })
+    if (index === -1) {
+      return res.status(404).json({ error: 'Пользователь не найден' })
+    }
+
+    const updatedUser = {
+      ...users[index],
+      ...(name && { name: name.trim() }),
+      ...(phone && { phone: phone.trim() }),
+      ...(profileImage && { profileImage }),
+      ...(specialty && { specialty }),
+      ...(experience && { experience }),
+      ...(description && { description }),
+      ...(price && { price }),
+      ...(languages && { languages }),
+      ...(services && { services }),
+      updatedAt: new Date().toISOString()
+    }
+
+    users[index] = updatedUser
+    await writeUsers(users)
+
+    // Удаляем пароль из ответа
+    const { password, ...userResponse } = updatedUser
+    res.json(userResponse)
+  } catch (error) {
+    console.error('Ошибка обновления пользователя:', error)
+    res.status(500).json({ error: 'Ошибка обновления пользователя' })
   }
+})
 
-  const [removed] = users.splice(index, 1)
-  writeUsers(users)
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const users = await readUsers()
+    const index = users.findIndex(u => u.id === req.params.id)
 
-  // Удаляем пароль из ответа
-  const { password, ...userResponse } = removed
-  res.json({ success: true, user: userResponse })
+    if (index === -1) {
+      return res.status(404).json({ error: 'Пользователь не найден' })
+    }
+
+    const [removed] = users.splice(index, 1)
+    await writeUsers(users)
+
+    // Удаляем пароль из ответа
+    const { password, ...userResponse } = removed
+    res.json({ success: true, user: userResponse })
+  } catch (error) {
+    console.error('Ошибка удаления пользователя:', error)
+    res.status(500).json({ error: 'Ошибка удаления пользователя' })
+  }
 })
 
 // API для получения списка астрологов (специалистов)
-app.get('/api/astrologers', (req, res) => {
-  const users = readUsers()
-  const astrologers = users.filter(u => u.role === 'astrologer')
-  
-  console.log(`📋 ЗАПРОС АСТРОЛОГОВ: Найдено ${astrologers.length} астрологов из ${users.length} пользователей`)
-  if (astrologers.length > 0) {
-    console.log(`📋 Список астрологов:`, astrologers.map(a => `${a.name} (ID: ${a.id})`).join(', '))
+app.get('/api/astrologers', async (req, res) => {
+  try {
+    const users = await readUsers()
+    const astrologers = users.filter(u => u.role === 'astrologer')
+    
+    console.log(`📋 ЗАПРОС АСТРОЛОГОВ: Найдено ${astrologers.length} астрологов из ${users.length} пользователей`)
+    if (astrologers.length > 0) {
+      console.log(`📋 Список астрологов:`, astrologers.map(a => `${a.name} (ID: ${a.id})`).join(', '))
+    }
+
+    // Преобразуем пользователей в формат специалистов
+    const specialists = astrologers.map(user => ({
+      id: user.id,
+      name: user.name,
+      specialty: user.specialty || 'Астролог',
+      rating: user.rating || 0,
+      reviews: user.reviews || 0,
+      price: user.price || 2000,
+      pricePerMinute: user.pricePerMinute || Math.round((user.price || 2000) / 60),
+      experience: user.experience || 'Новый специалист',
+      consultations: user.consultations || 0,
+      languages: user.languages || ['Русский'],
+      services: user.services || ['Астрологические консультации'],
+      description: user.description || 'Профессиональный астролог',
+      image: user.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658f4ff4e?w=300&h=200&fit=crop&crop=face',
+      avatar: user.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658f4ff4e?w=300&h=200&fit=crop&crop=face',
+      tags: user.services || ['Астрологические консультации'],
+      available: user.available !== undefined ? user.available : true,
+      isOnline: user.isOnline !== undefined ? user.isOnline : false,
+      email: user.email,
+      phone: user.phone
+    }))
+
+    res.json(specialists)
+  } catch (error) {
+    console.error('Ошибка получения астрологов:', error)
+    res.status(500).json({ error: 'Ошибка получения астрологов' })
   }
-
-  // Преобразуем пользователей в формат специалистов
-  const specialists = astrologers.map(user => ({
-    id: user.id,
-    name: user.name,
-    specialty: user.specialty || 'Астролог',
-    rating: user.rating || 0,
-    reviews: user.reviews || 0,
-    price: user.price || 2000,
-    pricePerMinute: user.pricePerMinute || Math.round((user.price || 2000) / 60),
-    experience: user.experience || 'Новый специалист',
-    consultations: user.consultations || 0,
-    languages: user.languages || ['Русский'],
-    services: user.services || ['Астрологические консультации'],
-    description: user.description || 'Профессиональный астролог',
-    image: user.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658f4ff4e?w=300&h=200&fit=crop&crop=face',
-    avatar: user.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658f4ff4e?w=300&h=200&fit=crop&crop=face',
-    tags: user.services || ['Астрологические консультации'],
-    available: user.available !== undefined ? user.available : true,
-    isOnline: user.isOnline !== undefined ? user.isOnline : false,
-    email: user.email,
-    phone: user.phone
-  }))
-
-  res.json(specialists)
 })
 
 // API для входа (авторизации)
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email и пароль обязательны' })
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email и пароль обязательны' })
+    }
+
+    const users = await readUsers()
+    const normalizedEmail = email.toLowerCase().trim()
+    
+    const user = users.find(u => u.email.toLowerCase().trim() === normalizedEmail && u.password === password)
+
+    if (!user) {
+      return res.status(401).json({ error: 'Неверный email или пароль' })
+    }
+
+    // Удаляем пароль из ответа
+    const { password: _, ...userResponse } = user
+    res.json(userResponse)
+  } catch (error) {
+    console.error('Ошибка входа:', error)
+    res.status(500).json({ error: 'Ошибка входа' })
   }
-
-  const users = readUsers()
-  const normalizedEmail = email.toLowerCase().trim()
-  
-  const user = users.find(u => u.email.toLowerCase().trim() === normalizedEmail && u.password === password)
-
-  if (!user) {
-    return res.status(401).json({ error: 'Неверный email или пароль' })
-  }
-
-  // Удаляем пароль из ответа
-  const { password: _, ...userResponse } = user
-  res.json(userResponse)
 })
 
 // API для восстановления пароля
-app.post('/api/auth/forgot-password', (req, res) => {
-  const { email } = req.body
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body
 
-  if (!email) {
-    return res.status(400).json({ error: 'Email обязателен' })
-  }
-
-  const users = readUsers()
-  const normalizedEmail = email.toLowerCase().trim()
-  
-  const user = users.find(u => u.email.toLowerCase().trim() === normalizedEmail)
-
-  if (!user) {
-    return res.status(404).json({ error: 'Пользователь с таким email не найден' })
-  }
-
-  // Генерируем новый пароль
-  const generatePassword = () => {
-    const length = 12
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let password = ''
-    password += charset.charAt(Math.floor(Math.random() * 26))
-    password += charset.charAt(26 + Math.floor(Math.random() * 26))
-    password += charset.charAt(52 + Math.floor(Math.random() * 10))
-    
-    for (let i = password.length; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    if (!email) {
+      return res.status(400).json({ error: 'Email обязателен' })
     }
+
+    const users = await readUsers()
+    const normalizedEmail = email.toLowerCase().trim()
     
-    return password.split('').sort(() => Math.random() - 0.5).join('')
-  }
+    const user = users.find(u => u.email.toLowerCase().trim() === normalizedEmail)
 
-  const newPassword = generatePassword()
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь с таким email не найден' })
+    }
 
-  // Обновляем пароль пользователя
-  const userIndex = users.findIndex(u => u.id === user.id)
-  if (userIndex !== -1) {
-    users[userIndex].password = newPassword
-    users[userIndex].updatedAt = new Date().toISOString()
-    writeUsers(users)
-  }
+    // Генерируем новый пароль
+    const generatePassword = () => {
+      const length = 12
+      const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+      let password = ''
+      password += charset.charAt(Math.floor(Math.random() * 26))
+      password += charset.charAt(26 + Math.floor(Math.random() * 26))
+      password += charset.charAt(52 + Math.floor(Math.random() * 10))
+      
+      for (let i = password.length; i < length; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length))
+      }
+      
+      return password.split('').sort(() => Math.random() - 0.5).join('')
+    }
+
+    const newPassword = generatePassword()
+
+    // Обновляем пароль пользователя
+    const userIndex = users.findIndex(u => u.id === user.id)
+    if (userIndex !== -1) {
+      users[userIndex].password = newPassword
+      users[userIndex].updatedAt = new Date().toISOString()
+      await writeUsers(users)
+    }
 
   // Возвращаем новый пароль (в продакшене нужно отправить на email)
   res.json({ 

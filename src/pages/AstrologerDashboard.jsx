@@ -6,7 +6,7 @@ import { useSpecialists } from '../contexts/SpecialistsContext'
 import { useProducts } from '../contexts/ProductsContext'
 import { useLectures } from '../contexts/LecturesContext'
 import ProductAdmin from '../components/ProductAdmin'
-import { FaYoutube, FaTelegram, FaWhatsapp, FaInstagram, FaEdit, FaTrash, FaCalendarAlt, FaVideo, FaUsers, FaStar, FaUser, FaNewspaper, FaShoppingBag, FaFolder, FaFolderPlus, FaFolderOpen, FaFileAlt, FaDownload, FaPlus, FaBook, FaSave, FaTimes, FaExternalLinkAlt, FaCloudUploadAlt } from 'react-icons/fa'
+import { FaYoutube, FaTelegram, FaWhatsapp, FaInstagram, FaEdit, FaTrash, FaCalendarAlt, FaVideo, FaUsers, FaStar, FaUser, FaNewspaper, FaShoppingBag, FaFolder, FaFolderPlus, FaFolderOpen, FaFileAlt, FaDownload, FaPlus, FaBook, FaSave, FaTimes, FaExternalLinkAlt, FaCloudUploadAlt, FaCheck, FaBan } from 'react-icons/fa'
 import { useNews } from '../contexts/NewsContext'
 
 const ASTROLOGER_ARCHIVE_STORAGE_KEY = 'astrologerArchiveFolders'
@@ -342,7 +342,7 @@ const AstrologerDashboard = () => {
                   date: booking.date,
                   time: booking.time,
                   duration: booking.duration || 60,
-                  status: booking.status === 'pending' ? 'upcoming' : booking.status === 'completed' ? 'completed' : 'upcoming',
+                  status: booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'upcoming' : booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'cancelled' : 'upcoming',
                   type: booking.type === 'group' ? 'group' : 'individual',
                   language: booking.language || 'ru',
                   phoneNumber: booking.phoneNumber,
@@ -1376,13 +1376,34 @@ const AstrologerDashboard = () => {
                   borderRadius: '20px',
                   fontSize: '12px',
                   fontWeight: 'bold',
-                  background: consultation.status === 'upcoming' ? '#ffc107' : consultation.status === 'completed' ? '#28a745' : '#6c757d',
+                  background: consultation.status === 'pending' ? '#ff9800' : consultation.status === 'upcoming' ? '#ffc107' : consultation.status === 'completed' ? '#28a745' : '#6c757d',
                   color: 'white'
                 }}>
-                  {consultation.status === 'upcoming' ? 'Предстоит' : consultation.status === 'completed' ? 'Завершена' : 'Отменена'}
+                  {consultation.status === 'pending' ? 'Ожидает подтверждения' : consultation.status === 'upcoming' ? 'Предстоит' : consultation.status === 'completed' ? 'Завершена' : 'Отменена'}
                 </span>
               </div>
             </div>
+            
+            {consultation.status === 'pending' && (
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button 
+                  className="btn btn-primary" 
+                  style={{ background: '#28a745', borderColor: '#28a745' }}
+                  onClick={() => handleConfirmBooking(consultation.id)}
+                >
+                  <FaCheck style={{ marginRight: '8px' }} />
+                  Подтвердить запрос
+                </button>
+                <button 
+                  className="btn btn-secondary"
+                  style={{ background: '#dc3545', borderColor: '#dc3545', color: 'white' }}
+                  onClick={() => handleCancelBooking(consultation.id)}
+                >
+                  <FaBan style={{ marginRight: '8px' }} />
+                  Отменить
+                </button>
+              </div>
+            )}
             
             {consultation.status === 'upcoming' && (
               <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>

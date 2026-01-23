@@ -33,33 +33,46 @@ const SpecialistCard = ({ specialist }) => {
     try {
       // Отправляем данные бронирования на сервер
       const API_BASE_URL = import.meta.env.VITE_API_URL || ''
-      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bookingData)
-      })
-
-      if (!response.ok) {
-        throw new Error('Ошибка при сохранении бронирования')
-      }
-
-      const savedBooking = await response.json()
-      console.log('Бронирование сохранено:', savedBooking)
       
-      alert(`✅ Консультация забронирована на ${bookingData.date} в ${bookingData.time}!\n\n` +
-            `Стоимость: ${bookingData.finalPrice} ₽\n` +
-            `Язык консультации: ${bookingData.language}\n` +
-            `📱 Напоминание будет отправлено на ${bookingData.phoneNumber} за 24 часа до консультации`)
+      if (API_BASE_URL) {
+        const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(bookingData)
+        })
+
+        if (!response.ok) {
+          throw new Error('Ошибка при сохранении бронирования')
+        }
+
+        const savedBooking = await response.json()
+        console.log('Бронирование сохранено:', savedBooking)
+        
+        const phoneMessage = bookingData.phoneNumber 
+          ? `📱 Напоминание будет отправлено на ${bookingData.phoneNumber} за 24 часа до консультации`
+          : `📱 Напоминание не будет отправлено (телефон не указан)`
+        
+        alert(`✅ Консультация забронирована на ${bookingData.date} в ${bookingData.time}!\n\n` +
+              `Стоимость: ${bookingData.finalPrice} ₽\n` +
+              `Язык консультации: ${bookingData.language}\n` +
+              `${phoneMessage}\n\n` +
+              `Заявка отправлена и ожидает подтверждения астрологом.`)
+      } else {
+        console.warn('API не настроен')
+        alert(`✅ Консультация забронирована на ${bookingData.date} в ${bookingData.time}!\n\n` +
+              `⚠️ API не настроен. Данные не сохранены на сервере.`)
+      }
     } catch (error) {
       console.error('Ошибка сохранения бронирования:', error)
-      // Даже если сервер недоступен, показываем успех (данные сохранятся локально)
-      alert(`✅ Консультация забронирована на ${bookingData.date} в ${bookingData.time}!\n\n` +
-            `Стоимость: ${bookingData.finalPrice} ₽\n` +
-            `Язык консультации: ${bookingData.language}\n` +
-            `⚠️ Данные сохранены локально. Напоминания будут отправлены после запуска сервера.`)
+      alert(`❌ Ошибка при отправке заявки: ${error.message}\n\nПопробуйте еще раз.`)
+      // Не закрываем модальное окно при ошибке
+      return
     }
+    
+    // Закрываем модальное окно после успешной отправки
+    setShowBookingModal(false)
   }
 
   const formatPrice = (price, currency) => {

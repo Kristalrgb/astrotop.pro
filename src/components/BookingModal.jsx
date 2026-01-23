@@ -61,7 +61,7 @@ const BookingModal = ({ specialist, isOpen, onClose, onBookingConfirm }) => {
     setAppliedPromo(null)
   }
 
-  const handleBookingSubmit = (e) => {
+  const handleBookingSubmit = async (e) => {
     e.preventDefault()
     
     if (!selectedDate || !selectedTime) {
@@ -74,22 +74,21 @@ const BookingModal = ({ specialist, isOpen, onClose, onBookingConfirm }) => {
       return
     }
 
-    if (!phoneNumber.trim()) {
-      alert('Пожалуйста, укажите номер телефона для напоминаний')
-      return
-    }
+    // Телефон необязателен для напоминаний
 
     const bookingData = {
       specialistId: specialist.id,
       specialistName: specialist.name,
       clientId: user.id,
       clientName: user.name,
+      clientEmail: user.email || '',
+      clientPhone: user.phone || '',
       date: selectedDate,
       time: selectedTime,
       duration: selectedDuration,
       type: selectedType,
       language: selectedLanguage, // Язык для консультации
-      phoneNumber: phoneNumber.trim(), // Телефон для напоминаний
+      phoneNumber: phoneNumber.trim() || null, // Телефон для напоминаний (необязательно)
       basePrice: getCurrentPrice(),
       discount: appliedPromo ? appliedPromo.discount : 0,
       finalPrice: appliedPromo 
@@ -105,10 +104,12 @@ const BookingModal = ({ specialist, isOpen, onClose, onBookingConfirm }) => {
     console.log('Данные бронирования:', bookingData)
     
     if (onBookingConfirm) {
-      onBookingConfirm(bookingData)
+      // onBookingConfirm должен закрыть модальное окно после успешной отправки
+      await onBookingConfirm(bookingData)
+    } else {
+      // Если нет обработчика, просто закрываем окно
+      onClose()
     }
-    
-    onClose()
   }
 
   const getFinalPrice = () => {
@@ -262,12 +263,11 @@ const BookingModal = ({ specialist, isOpen, onClose, onBookingConfirm }) => {
               type="tel"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="+7 (999) 123-45-67"
-              required
+              placeholder="+7 (999) 123-45-67 (необязательно)"
               className="form-input"
             />
             <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-              📱 На этот номер будет отправлено SMS-напоминание за 24 часа до консультации
+              📱 На этот номер будет отправлено SMS-напоминание за 24 часа до консультации (если указан)
             </p>
           </div>
 

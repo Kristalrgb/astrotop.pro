@@ -61,29 +61,73 @@ const ClientDashboard = () => {
     notes: ''
   })
 
-  // Моковые данные
+  // Загрузка консультаций с бэкенда
   useEffect(() => {
-    const mockConsultations = [
-      {
-        id: 1,
-        specialists: ['Елена Петрова', 'Михаил Сидоров'],
-        date: '2024-01-15',
-        time: '14:00',
-        duration: 60,
-        status: 'completed',
-        type: 'group'
-      },
-      {
-        id: 2,
-        specialists: ['Анна Козлова'],
-        date: '2024-01-20',
-        time: '16:00',
-        duration: 45,
-        status: 'upcoming',
-        type: 'individual'
+    const loadConsultations = async () => {
+      if (!user || !user.id) {
+        console.log('Пользователь не найден, используем пустой список')
+        setConsultations([])
+        return
       }
-    ]
 
+      const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+      
+      if (API_BASE_URL) {
+        try {
+          // Загружаем бронирования клиента
+          console.log('Загрузка бронирований для клиента (user.id):', user.id)
+          const response = await fetch(`${API_BASE_URL}/api/bookings?clientId=${user.id}`)
+          
+          if (response.ok) {
+            const bookings = await response.json()
+            console.log('Бронирования загружены:', bookings)
+            
+            // Преобразуем бронирования в формат консультаций
+            const consultationsData = bookings.map(booking => ({
+              id: booking.id,
+              specialists: [booking.specialistName || 'Астролог'],
+              date: booking.date,
+              time: booking.time,
+              duration: booking.duration || 60,
+              status: booking.status === 'pending' ? 'upcoming' : booking.status === 'confirmed' ? 'upcoming' : booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'cancelled' : 'upcoming',
+              type: booking.type === 'group' ? 'group' : 'individual',
+              specialistId: booking.specialistId,
+              specialistName: booking.specialistName
+            }))
+            
+            // Сортируем по дате (ближайшие первыми)
+            consultationsData.sort((a, b) => {
+              const dateA = new Date(`${a.date}T${a.time}`)
+              const dateB = new Date(`${b.date}T${b.time}`)
+              return dateA - dateB
+            })
+            
+            setConsultations(consultationsData)
+            console.log('Консультации установлены:', consultationsData)
+          } else {
+            console.warn('Ошибка загрузки бронирований:', response.status)
+            setConsultations([])
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки бронирований:', error)
+          setConsultations([])
+        }
+      } else {
+        console.warn('VITE_API_URL не настроен, используем пустой список')
+        setConsultations([])
+      }
+    }
+
+    loadConsultations()
+    
+    // Загружаем консультации каждые 30 секунд для обновления
+    const interval = setInterval(loadConsultations, 30000)
+    
+    return () => clearInterval(interval)
+  }, [user])
+
+  // Моковые данные для записей (пока нет API)
+  useEffect(() => {
     const mockRecordings = [
       {
         id: 1,
@@ -94,8 +138,6 @@ const ClientDashboard = () => {
         downloadUrl: '#'
       }
     ]
-
-    setConsultations(mockConsultations)
     setRecordings(mockRecordings)
   }, [])
 
@@ -157,14 +199,77 @@ const ClientDashboard = () => {
     setSelectedTime(time)
   }
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (selectedSpecialists.length === 0 || !selectedDate || !selectedTime) {
       alert('Пожалуйста, выберите специалистов, дату и время')
       return
     }
-    
-    // Здесь должна быть логика создания бронирования
-    alert('Заявка на консультацию отправлена!')
+
+    if (!user) {
+      alert('Пожалуйста, войдите в систему для бронирования')
+      return
+    }
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+      
+      // Создаем бронирование для каждого выбранного специалиста
+      for (const specialist of selectedSpecialists) {
+        const bookingData = {
+          specialistId: specialist.id,
+          specialistName: specialist.name,
+          clientId: user.id,
+          clientName: user.name,
+          clientEmail: user.email || '',
+          clientPhone: user.phone || '',
+          date: selectedDate.toISOString().split('T')[0], // Формат YYYY-MM-DD
+          time: selectedTime,
+          duration: 60, // По умолчанию 60 минут
+          type: 'individual',
+          language: 'ru',
+          phoneNumber: user.phone || null, // Телефон для напоминаний (необязательно)
+          basePrice: specialist.price || specialist.pricePerMinute * 60 || 2000,
+          finalPrice: specialist.price || specialist.pricePerMinute * 60 || 2000,
+          status: 'pending',
+          reminderSent: false,
+          createdAt: new Date().toISOString()
+        }
+
+        console.log('Отправка бронирования:', bookingData)
+
+        if (API_BASE_URL) {
+          const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bookingData)
+          })
+
+          if (!response.ok) {
+            throw new Error('Ошибка при сохранении бронирования')
+          }
+
+          const savedBooking = await response.json()
+          console.log('Бронирование сохранено:', savedBooking)
+        } else {
+          console.warn('API не настроен, бронирование не отправлено на сервер')
+        }
+      }
+
+      alert(`✅ Консультация забронирована на ${selectedDate.toLocaleDateString('ru-RU')} в ${selectedTime}!\n\n` +
+            `Специалист: ${selectedSpecialists.map(s => s.name).join(', ')}\n` +
+            `Заявка отправлена и ожидает подтверждения.`)
+      
+      // Очищаем выбранные данные
+      setSelectedSpecialists([])
+      setSelectedTime('')
+      setSelectedDate(new Date())
+      
+    } catch (error) {
+      console.error('Ошибка сохранения бронирования:', error)
+      alert('Ошибка при отправке заявки. Попробуйте еще раз.')
+    }
   }
 
   const downloadRecording = (recording) => {
