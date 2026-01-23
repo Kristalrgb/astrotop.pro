@@ -321,61 +321,28 @@ const AstrologerDashboard = () => {
           console.log('Загрузка бронирований для астролога (user.id):', user.id)
           let response = await fetch(`${API_BASE_URL}/api/bookings?specialistId=${user.id}`)
           
+          let bookings = []
+          
           // Если не найдено, пробуем загрузить все бронирования и фильтровать
-          if (!response.ok || (response.ok && (await response.json()).length === 0)) {
+          if (!response.ok) {
             console.log('Попытка загрузить все бронирования...')
             response = await fetch(`${API_BASE_URL}/api/bookings`)
             if (response.ok) {
               const allBookings = await response.json()
               console.log('Все бронирования:', allBookings)
               // Фильтруем по specialistId, сравнивая как строки
-              const userBookings = allBookings.filter(booking => 
+              bookings = allBookings.filter(booking => 
                 String(booking.specialistId) === String(user.id)
               )
-              console.log('Отфильтрованные бронирования для астролога:', userBookings)
-              
-              if (userBookings.length > 0) {
-                const consultationsData = userBookings.map(booking => ({
-                  id: booking.id,
-                  clientName: booking.clientName || 'Клиент',
-                  clientId: booking.clientId,
-                  date: booking.date,
-                  time: booking.time,
-                  duration: booking.duration || 60,
-                  status: booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'upcoming' : booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'cancelled' : 'upcoming',
-                  type: booking.type === 'group' ? 'group' : 'individual',
-                  language: booking.language || 'ru',
-                  phoneNumber: booking.phoneNumber,
-                  notes: booking.notes,
-                  basePrice: booking.basePrice,
-                  finalPrice: booking.finalPrice,
-                  promoCode: booking.promoCode,
-                  createdAt: booking.createdAt
-                }))
-                
-                consultationsData.sort((a, b) => {
-                  const dateA = new Date(`${a.date}T${a.time}`)
-                  const dateB = new Date(`${b.date}T${b.time}`)
-                  return dateA - dateB
-                })
-                
-                setConsultations(consultationsData)
-                console.log('Консультации установлены:', consultationsData)
-                return
-              }
+              console.log('Отфильтрованные бронирования для астролога:', bookings)
             }
+          } else {
+            bookings = await response.json()
+            console.log('Бронирования загружены:', bookings)
           }
           
-          // Если response.ok, обрабатываем как обычно
-          if (response.ok) {
-            const bookings = await response.json()
-            console.log('Бронирования загружены:', bookings)
-          
-          if (response.ok) {
-            const bookings = await response.json()
-            console.log('Бронирования загружены:', bookings)
-            
-            // Преобразуем бронирования в формат консультаций
+          // Преобразуем бронирования в формат консультаций
+          if (bookings.length > 0) {
             const consultationsData = bookings.map(booking => ({
               id: booking.id,
               clientName: booking.clientName || 'Клиент',
@@ -383,7 +350,7 @@ const AstrologerDashboard = () => {
               date: booking.date,
               time: booking.time,
               duration: booking.duration || 60,
-              status: booking.status === 'pending' ? 'upcoming' : booking.status === 'completed' ? 'completed' : 'upcoming',
+              status: booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'upcoming' : booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'cancelled' : 'upcoming',
               type: booking.type === 'group' ? 'group' : 'individual',
               language: booking.language || 'ru',
               phoneNumber: booking.phoneNumber,
@@ -404,7 +371,7 @@ const AstrologerDashboard = () => {
             setConsultations(consultationsData)
             console.log('Консультации установлены:', consultationsData)
           } else {
-            console.warn('Ошибка загрузки бронирований:', response.status)
+            console.warn('Бронирования не найдены')
             setConsultations([])
           }
         } catch (error) {
