@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSpecialists } from '../contexts/SpecialistsContext'
-import { FaCalendarAlt, FaVideo, FaDownload, FaUsers, FaClock, FaStar, FaUser, FaFilter, FaSearch, FaFolderPlus, FaFolder, FaFolderOpen, FaPlus, FaStickyNote, FaTrash, FaRegCalendarAlt } from 'react-icons/fa'
+import { FaCalendarAlt, FaVideo, FaDownload, FaUsers, FaClock, FaStar, FaUser, FaFilter, FaSearch, FaFolderPlus, FaFolder, FaFolderOpen, FaPlus, FaStickyNote, FaTrash, FaRegCalendarAlt, FaPhone } from 'react-icons/fa'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 
@@ -21,6 +21,8 @@ const ClientDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSpecialty, setSelectedSpecialty] = useState('all')
   const [showFilters, setShowFilters] = useState(true)
+  const [wantSMSReminder, setWantSMSReminder] = useState(false)
+  const [phoneForReminder, setPhoneForReminder] = useState('')
   const [folders, setFolders] = useState(() => {
     const createLecturesFolder = () => ({
       id: 'folder-lectures-default',
@@ -89,10 +91,14 @@ const ClientDashboard = () => {
               date: booking.date,
               time: booking.time,
               duration: booking.duration || 60,
-              status: booking.status === 'pending' ? 'upcoming' : booking.status === 'confirmed' ? 'upcoming' : booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'cancelled' : 'upcoming',
+              status: booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'upcoming' : booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'cancelled' : 'upcoming',
               type: booking.type === 'group' ? 'group' : 'individual',
               specialistId: booking.specialistId,
-              specialistName: booking.specialistName
+              specialistName: booking.specialistName,
+              notes: booking.notes || '',
+              phoneNumber: booking.phoneNumber || '',
+              finalPrice: booking.finalPrice || booking.basePrice || 0,
+              language: booking.language || 'ru'
             }))
             
             // Сортируем по дате (ближайшие первыми)
@@ -227,7 +233,7 @@ const ClientDashboard = () => {
           duration: 60, // По умолчанию 60 минут
           type: 'individual',
           language: 'ru',
-          phoneNumber: user.phone || null, // Телефон для напоминаний (необязательно)
+          phoneNumber: wantSMSReminder && phoneForReminder.trim() ? phoneForReminder.trim() : null, // Телефон для напоминаний (только если выбрано)
           basePrice: specialist.price || specialist.pricePerMinute * 60 || 2000,
           finalPrice: specialist.price || specialist.pricePerMinute * 60 || 2000,
           status: 'pending',
@@ -265,6 +271,8 @@ const ClientDashboard = () => {
       setSelectedSpecialists([])
       setSelectedTime('')
       setSelectedDate(new Date())
+      setWantSMSReminder(false)
+      setPhoneForReminder('')
       
     } catch (error) {
       console.error('Ошибка сохранения бронирования:', error)
@@ -401,35 +409,68 @@ const ClientDashboard = () => {
   const renderConsultationCard = (consultation) => {
     const isCompleted = consultation.status === 'completed'
     const isUpcoming = consultation.status === 'upcoming'
+    const isPending = consultation.status === 'pending'
+    const isCancelled = consultation.status === 'cancelled'
     
     return (
       <div key={consultation.id} className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-          <div>
+          <div style={{ flex: 1 }}>
             <h3 style={{ marginBottom: '10px' }}>
               {consultation.type === 'group' ? 'Групповая консультация' : 'Индивидуальная консультация'}
             </h3>
             <p style={{ color: '#666', marginBottom: '10px' }}>
-              <strong>Специалисты:</strong> {consultation.specialists.join(', ')}
+              <strong>Специалист:</strong> {consultation.specialists?.join(', ') || consultation.specialistName || 'Астролог'}
             </p>
             <p style={{ color: '#666', marginBottom: '10px' }}>
               <strong>Дата:</strong> {consultation.date} в {consultation.time}
             </p>
-            <p style={{ color: '#666' }}>
-              <strong>Длительность:</strong> {consultation.duration} минут
+            <p style={{ color: '#666', marginBottom: '10px' }}>
+              <strong>Длительность:</strong> {consultation.duration || 60} минут
             </p>
+            
+            {/* Детали для pending запросов */}
+            {isPending && (
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '15px', 
+                background: '#fff3cd', 
+                borderRadius: '8px',
+                border: '1px solid #ffc107'
+              }}>
+                <p style={{ color: '#856404', marginBottom: '10px', fontWeight: 'bold' }}>
+                  ⏳ Запрос отправлен астрологу
+                </p>
+                <p style={{ color: '#856404', fontSize: '14px', marginBottom: '5px' }}>
+                  Ваш запрос на консультацию отправлен и ожидает подтверждения астрологом.
+                </p>
+                <p style={{ color: '#856404', fontSize: '14px', marginBottom: '5px' }}>
+                  После подтверждения вы получите уведомление, и консультация появится в разделе "Предстоящие консультации".
+                </p>
+                {consultation.finalPrice && consultation.finalPrice > 0 && (
+                  <p style={{ color: '#856404', fontSize: '14px', marginTop: '10px' }}>
+                    <strong>Стоимость:</strong> {consultation.finalPrice} ₽
+                  </p>
+                )}
+                {consultation.notes && (
+                  <p style={{ color: '#856404', fontSize: '14px', marginTop: '10px', fontStyle: 'italic' }}>
+                    <strong>Ваши пожелания:</strong> {consultation.notes}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           
-          <div style={{ textAlign: 'right' }}>
+          <div style={{ textAlign: 'right', marginLeft: '20px' }}>
             <span style={{
               padding: '6px 12px',
               borderRadius: '20px',
               fontSize: '12px',
               fontWeight: 'bold',
-              background: isCompleted ? '#28a745' : isUpcoming ? '#ffc107' : '#6c757d',
+              background: isPending ? '#ff9800' : isCompleted ? '#28a745' : isUpcoming ? '#ffc107' : '#6c757d',
               color: 'white'
             }}>
-              {isCompleted ? 'Завершена' : isUpcoming ? 'Предстоит' : 'Отменена'}
+              {isPending ? 'Ожидает подтверждения' : isCompleted ? 'Завершена' : isUpcoming ? 'Предстоит' : 'Отменена'}
             </span>
           </div>
         </div>
@@ -970,10 +1011,78 @@ const ClientDashboard = () => {
                   <p><strong>Общая стоимость:</strong> {selectedSpecialists.reduce((sum, s) => sum + (s.pricePerMinute || s.price), 0)} ₽/мин</p>
                 </div>
 
+                {/* Выбор получения SMS напоминаний */}
+                <div style={{ marginTop: '30px', padding: '20px', background: '#f0f8ff', borderRadius: '8px', border: '1px solid #667eea' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '15px' }}>
+                    <input
+                      type="checkbox"
+                      id="wantSMSReminder"
+                      checked={wantSMSReminder}
+                      onChange={(e) => {
+                        setWantSMSReminder(e.target.checked)
+                        if (!e.target.checked) {
+                          setPhoneForReminder('')
+                        } else if (!phoneForReminder && user?.phone) {
+                          setPhoneForReminder(user.phone)
+                        }
+                      }}
+                      style={{ 
+                        width: '20px', 
+                        height: '20px', 
+                        cursor: 'pointer',
+                        marginTop: '2px'
+                      }}
+                    />
+                    <label 
+                      htmlFor="wantSMSReminder"
+                      style={{ 
+                        cursor: 'pointer',
+                        flex: 1,
+                        color: '#333',
+                        fontSize: '15px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      <FaPhone style={{ marginRight: '8px', color: '#667eea' }} />
+                      Хочу получать SMS-напоминание за 24 часа до консультации
+                    </label>
+                  </div>
+                  
+                  {wantSMSReminder && (
+                    <div style={{ marginTop: '15px', paddingLeft: '32px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', color: '#666', fontSize: '14px' }}>
+                        Номер телефона для SMS-напоминания:
+                      </label>
+                      <input
+                        type="tel"
+                        value={phoneForReminder}
+                        onChange={(e) => setPhoneForReminder(e.target.value)}
+                        placeholder="+7 (999) 123-45-67"
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid #ddd',
+                          borderRadius: '6px',
+                          fontSize: '15px'
+                        }}
+                      />
+                      <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+                        📱 На этот номер будет отправлено SMS-напоминание за 24 часа до консультации
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!wantSMSReminder && (
+                    <p style={{ fontSize: '13px', color: '#666', marginTop: '10px', paddingLeft: '32px' }}>
+                      Вы можете выбрать получение SMS-напоминания, отметив галочку выше
+                    </p>
+                  )}
+                </div>
+
                 <button
                   className="btn btn-primary book-btn"
                   onClick={handleBooking}
-                  disabled={!selectedTime}
+                  disabled={!selectedTime || (wantSMSReminder && !phoneForReminder.trim())}
                   style={{ marginTop: '20px', width: '100%' }}
                 >
                   Забронировать консультацию
