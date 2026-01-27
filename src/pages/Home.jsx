@@ -83,37 +83,67 @@ const Home = () => {
       {/* Top Specialists Section */}
       <section style={{ padding: '19px 0 80px 0' }}>
         <div className="container">
-          <h2 style={{ textAlign: 'center', marginBottom: '60px', fontSize: '2.5rem', color: 'white' }}>
+          <h2 style={{ 
+            textAlign: 'center', 
+            marginBottom: '40px', 
+            fontSize: '2.5rem', 
+            color: 'white' 
+          }}>
             {t('home.topSpecialists.title')}
           </h2>
-          <div className="specialists-grid">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            maxWidth: '800px',
+            margin: '0 auto'
+          }}>
             {topSpecialists.map((specialist) => (
-              <div key={specialist.id} className="specialist-card">
-                <img src={specialist.image} alt={specialist.name} />
-                <div className="specialist-info">
-                  <h3 className="specialist-name">{specialist.name}</h3>
-                  <p className="specialist-specialty">{specialist.specialty}</p>
-                  <div className="specialist-rating">
-                    <div className="rating">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`star ${i < Math.floor(specialist.rating) ? '' : 'empty'}`}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                    <span>{specialist.rating}</span>
+              <Link 
+                key={specialist.id}
+                to={`/specialists/${specialist.id}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '15px 20px',
+                  textDecoration: 'none',
+                  color: 'white',
+                  transition: 'opacity 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.8'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1'
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '1.1rem',
+                    fontWeight: '500',
+                    marginBottom: '4px'
+                  }}>
+                    {specialist.name}
                   </div>
-                  <p className="specialist-price">{specialist.price}</p>
-                  <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-                    <Link to={`/specialists/${specialist.id}`} className="btn btn-secondary" style={{ width: '100%', textAlign: 'center' }}>
-                      Подробнее о специалисте
-                    </Link>
-                    <Link to={`/specialists/${specialist.id}`} className="btn btn-primary book-appointment-btn" style={{ width: '100%' }}>
-                      {t('home.topSpecialists.book')}
-                    </Link>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span>{specialist.specialty}</span>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>•</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FaStar style={{ color: '#ffd700', fontSize: '0.9rem' }} />
+                      {specialist.rating}
+                    </span>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>•</span>
+                    <span>{specialist.price}</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: '40px' }}>

@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: astro24pro-postgres
+    environment:
+      POSTGRES_DB: astro24pro
+      POSTGRES_USER: astro24pro
+      POSTGRES_PASSWORD: astro24pro
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - astro24pro-net
+
+  # backend:
+  #   build:
+  #     context: ./astro24pro-backend
+  #     dockerfile: Dockerfile
+  #   container_name: astro24pro-backend
+  #   environment:
+  #     NODE_ENV: production
+  #     PORT: 3000
+  #     POSTGRES_HOST: db
+  #     POSTGRES_PORT: 5432
+  #     POSTGRES_DB: astro24pro
+  #     POSTGRES_USER: astro24pro
+  #     POSTGRES_PASSWORD: astro24pro
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - "3001:3000"
+  #   networks:
+  #     - astro24pro-net
+
+  frontend:
+    build:
+      context: ./astro24pro-frontend
+      dockerfile: Dockerfile
+    container_name: astro24pro-frontend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Строка подключения к Postgres внутри Docker-сети
+      DATABASE_URL: postgres://astro24pro:astro24pro@db:5432/astro24pro
+      # Adjust this if your frontend expects another env var for API base URL
+      NEXT_PUBLIC_API_URL: http://backend:3000
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    networks:
+      - astro24pro-net
+
+volumes:
+  db-data:
+
+networks:
+  astro24pro-net:
+
