@@ -69,6 +69,11 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    news: News;
+    products: Product;
+    promocodes: Promocode;
+    courses: Course;
+    consultations: Consultation;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,17 +83,26 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    news: NewsSelect<false> | NewsSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    promocodes: PromocodesSelect<false> | PromocodesSelect<true>;
+    courses: CoursesSelect<false> | CoursesSelect<true>;
+    consultations: ConsultationsSelect<false> | ConsultationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    promotions: Promotion;
+  };
+  globalsSelect: {
+    promotions: PromotionsSelect<false> | PromotionsSelect<true>;
+  };
   locale: null;
   user: User & {
     collection: 'users';
@@ -121,7 +135,38 @@ export interface UserAuthOperations {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  avatar?: (number | null) | Media;
+  surname: string;
+  name: string;
+  patronymic?: string | null;
+  role: 'client' | 'specialist' | 'moderator' | 'admin';
+  specialistDetails?: {
+    specialization: string;
+    experience: number;
+    biography: string;
+    serviceCost: {
+      amount: number;
+      currency?: ('RUB' | 'USD' | 'EUR') | null;
+    };
+    reviews?:
+      | {
+          rating: number;
+          text: string;
+          authorName: string;
+          date?: string | null;
+          clientAccount?: (number | null) | User;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  cart?:
+    | {
+        product: number | Product;
+        quantity?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -145,7 +190,7 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -158,13 +203,179 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    mobile?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    tablet?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    desktop?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  title: string;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  images?: (number | Media)[] | null;
+  owner: number | User;
+  status?: ('draft' | 'pending' | 'published') | null;
+  price: number;
+  currency?: ('RUB' | 'USD') | null;
+  stock?: number | null;
+  reviews?:
+    | {
+        text?: string | null;
+        rating?: number | null;
+        date?: string | null;
+        author?: (number | null) | User;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news".
+ */
+export interface News {
+  id: number;
+  title: string;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  image?: (number | null) | Media;
+  author_id: number | User;
+  author_name: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promocodes".
+ */
+export interface Promocode {
+  id: number;
+  code: string;
+  description?: string | null;
+  discountPercent: number;
+  expirationDate: string;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses".
+ */
+export interface Course {
+  id: number;
+  title: string;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  author: number | User;
+  status?: ('draft' | 'published') | null;
+  price?: number | null;
+  startDate?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consultations".
+ */
+export interface Consultation {
+  id: number;
+  client: number | User;
+  specialist: number | User;
+  datetime: string;
+  duration?: number | null;
+  type?: ('Видеозвонок' | 'Аудиозвонок' | 'Чат' | 'Личная встреча') | null;
+  language?: ('RU' | 'EN') | null;
+  contacts?: {
+    email?: string | null;
+    phone?: string | null;
+  };
+  wishes?: string | null;
+  promocode?: (number | null) | Promocode;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -181,20 +392,40 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'news';
+        value: number | News;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'promocodes';
+        value: number | Promocode;
+      } | null)
+    | ({
+        relationTo: 'courses';
+        value: number | Course;
+      } | null)
+    | ({
+        relationTo: 'consultations';
+        value: number | Consultation;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -204,10 +435,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -227,7 +458,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -238,6 +469,41 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  avatar?: T;
+  surname?: T;
+  name?: T;
+  patronymic?: T;
+  role?: T;
+  specialistDetails?:
+    | T
+    | {
+        specialization?: T;
+        experience?: T;
+        biography?: T;
+        serviceCost?:
+          | T
+          | {
+              amount?: T;
+              currency?: T;
+            };
+        reviews?:
+          | T
+          | {
+              rating?: T;
+              text?: T;
+              authorName?: T;
+              date?: T;
+              clientAccount?: T;
+              id?: T;
+            };
+      };
+  cart?:
+    | T
+    | {
+        product?: T;
+        quantity?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -272,6 +538,137 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        mobile?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        tablet?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        desktop?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news_select".
+ */
+export interface NewsSelect<T extends boolean = true> {
+  title?: T;
+  content?: T;
+  image?: T;
+  author_id?: T;
+  author_name?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  images?: T;
+  owner?: T;
+  status?: T;
+  price?: T;
+  currency?: T;
+  stock?: T;
+  reviews?:
+    | T
+    | {
+        text?: T;
+        rating?: T;
+        date?: T;
+        author?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promocodes_select".
+ */
+export interface PromocodesSelect<T extends boolean = true> {
+  code?: T;
+  description?: T;
+  discountPercent?: T;
+  expirationDate?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses_select".
+ */
+export interface CoursesSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  author?: T;
+  status?: T;
+  price?: T;
+  startDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consultations_select".
+ */
+export interface ConsultationsSelect<T extends boolean = true> {
+  client?: T;
+  specialist?: T;
+  datetime?: T;
+  duration?: T;
+  type?: T;
+  language?: T;
+  contacts?:
+    | T
+    | {
+        email?: T;
+        phone?: T;
+      };
+  wishes?: T;
+  promocode?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -312,6 +709,54 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promotions".
+ */
+export interface Promotion {
+  id: number;
+  heroBanner: {
+    isActive?: boolean | null;
+    backgroundImage?: (number | null) | Media;
+    content: string;
+    link?: string | null;
+  };
+  schoolBanner?: {
+    isActive?: boolean | null;
+    backgroundImage?: (number | null) | Media;
+    title?: string | null;
+    buttonText?: string | null;
+    link?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promotions_select".
+ */
+export interface PromotionsSelect<T extends boolean = true> {
+  heroBanner?:
+    | T
+    | {
+        isActive?: T;
+        backgroundImage?: T;
+        content?: T;
+        link?: T;
+      };
+  schoolBanner?:
+    | T
+    | {
+        isActive?: T;
+        backgroundImage?: T;
+        title?: T;
+        buttonText?: T;
+        link?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
