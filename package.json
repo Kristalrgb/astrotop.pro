@@ -1,0 +1,33 @@
+{
+  "name": "astro-consultations",
+  "version": "1.0.0",
+  "description": "Сайт для онлайн консультаций астрологов и тарологов",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "socket.io-client": "^4.6.0",
+    "simple-peer": "^9.11.1",
+    "date-fns": "^2.29.3",
+    "react-calendar": "^4.2.1",
+    "react-icons": "^4.8.0",
+    "axios": "^1.3.4",
+    "zustand": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^3.1.0",
+    "vite": "^4.1.0",
+    "typescript": "^4.9.5"
+  }
+}
